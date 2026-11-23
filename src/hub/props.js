@@ -380,7 +380,7 @@ function icon(kind) {
 export function buildBoards(root) {
   const defs = [
     { title: 'BEST PULL', sub: 'Rarest animal ever caught', color: '#9b5bff', icon: 'clover' },
-    { title: 'MOST BADDIES', sub: 'Animals caught', color: '#ff4fa8', icon: 'carrot' },
+    { title: 'MOST ANIMALS', sub: 'Animals caught', color: '#ff4fa8', icon: 'carrot' },
     { title: 'TOP MONEY/S', sub: 'Highest income', color: '#3fcf3a', icon: 'cash' },
   ]
   const boards = defs.map((d, i) => {
@@ -421,8 +421,8 @@ export function buildBoards(root) {
   })
   return {
     boards,
-    draw(i, rows) {
-      paintBoard(boards[i].c, rows)
+    draw(i, rows, opts) {
+      paintBoard(boards[i].c, rows, opts)
       boards[i].tex.needsUpdate = true
     },
     update(dt, t) {

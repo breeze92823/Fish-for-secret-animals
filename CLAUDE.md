@@ -79,7 +79,7 @@ Everything below rides on the server roster (backend `PlayerState`) plus two rel
 ## Rooms and leaderboards on Bloxity
 - Open Rooms needs the backend's room reporter (see its CLAUDE.md) plus the client's `updateRoom` (`net.js reportRoom`, `relay~room`) and `?roomId=` join (`net.js joinLaunchRoom` -> `bloxity.locateRoom`).
 - The client sends its Bloxity token (`bloxity.getToken()`) on join and `identify`: on a deployed server it is the only way to be a signed-in player (progress saved, leaderboards).
-- Plaza boards: the server's `leaderboard` message (`net.onLeaderboard`, `LEADERBOARDS[i].stat`) first, then Bloxity's top list, then the offline stand-ins. Bloxity boards: `LEADERBOARDS` in config (same ids / settings as the backend; permanent once declared).
+- Plaza boards (MOST ANIMALS / BEST PULL / TOP MONEY/S; `drawBoards` in main.js): online they show only real players from the server's `leaderboard` message (`net.onLeaderboard`, `LEADERBOARDS[i].stat`), never stand-ins; your own row always carries your live number and, when you are outside the top 10, takes the last row with your true rank from the message's `ranks` (also in the footer: "You are #N"). Only when there is no server do they use Bloxity's top list, then the offline stand-ins (`BOARD_BOTS`). Redrawn every 15 s; the server list refreshes every minute. Bloxity boards: `LEADERBOARDS` in config (same ids / settings as the backend; permanent once declared).
 - `BLOXITY_CODE_METADATA.md` answers Bloxity's SDK-integration audit questions: keep it current.
 
 ## Ads policy and the friend invite boost

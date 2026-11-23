@@ -956,6 +956,7 @@ window.addEventListener('keydown', (e) => {
 // --- Leaderboards -------------------------------------------------------------------
 const botColors = ['#ff7fb8', '#7fa8ff', '#ffd84a', '#7dff4a', '#c27dff', '#ff9a2e', '#59e6ff', '#ff5f5f', '#b0ffb0', '#ffffff', '#ffc4dd']
 let serverBoards = null // { bestOdds, catches, income: [{ name, value }] } from the game server
+let serverRanks = null // { bestOdds, catches, income: your rank | null } from the game server
 const liveRows = [null, null, null]
 async function refreshLiveBoards() {
   if (!bloxity.sdk()) return
@@ -969,10 +970,32 @@ function submitScores() {
 }
 function drawBoards() {
   const me = { name: myPen.name, me: true, color: '#ffd84a' }
+  // Footer under each board: your real place when the server knows it.
+  const footerFor = (i) => {
+    const rank = serverRanks?.[LEADERBOARDS[i].stat]
+    return { footer: rank ? `You are #${fmt(rank)}  -  updates every minute` : 'Updates every minute' }
+  }
   const rows = (i, pick, fmtv, mine) => {
-    // The server's real top lists (every saved player), then Bloxity's, then the offline stand-ins.
-    const top = serverBoards?.[LEADERBOARDS[i].stat]
-    if (top?.length) return top.slice(0, 10).map((r, k) => ({ name: r.name, me: r.name === myPen.name, color: r.name === myPen.name ? '#ffd84a' : botColors[k % botColors.length], v: r.value, value: fmtv(r.value) }))
+    // Online, the server's real top list (every saved player): only real players, never stand-ins.
+    // Your own row always shows your live number (the server's copy is up to a save behind) and, when
+    // you are outside the top 10, takes the last row with your true rank.
+    const real = serverBoards ?? (online ? {} : null) // online but not answered yet: no stand-ins either
+    if (real) {
+      const stat = LEADERBOARDS[i].stat
+      const list = (real[stat] ?? []).map((r, k) => ({ name: r.name, v: r.value, me: r.name === myPen.name, color: botColors[k % botColors.length] }))
+      const mineRow = list.find((r) => r.me)
+      for (const r of list) r.me = r === mineRow // a namesake is not you
+      if (mineRow) mineRow.v = mine
+      else if (mine > 0) list.push({ ...me, v: mine })
+      list.sort((a, b) => b.v - a.v)
+      let out = list.slice(0, 10)
+      const at = list.findIndex((r) => r.me)
+      if (at >= 10) {
+        const rank = serverRanks?.[stat] ?? at + 1
+        out = [...out.slice(0, 9), { ...list[at], rank }]
+      }
+      return out.map((r) => ({ ...r, color: r.me ? '#ffd84a' : r.color, value: fmtv(r.v) }))
+    }
     // Bloxity's real top list when the SDK answered, else the offline stand-ins.
     const live = liveRows[i]
     if (live) return live.slice(0, 10).map((r, k) => ({ name: r.name, me: r.me, color: r.me ? '#ffd84a' : botColors[k % botColors.length], v: r.score, value: fmtv(r.score) }))
@@ -981,20 +1004,21 @@ function drawBoards() {
     list.sort((a, b) => b.v - a.v)
     return list.slice(0, 10).map((r) => ({ ...r, value: fmtv(r.v) }))
   }
-  boards.draw(0, rows(0, (r) => r[2], (v) => `1 in ${fmt(v)}`, state.S.stats.bestOdds))
-  boards.draw(1, rows(1, (r) => r[1], (v) => fmt(v), state.S.stats.catches))
-  boards.draw(2, rows(2, (r) => r[3], (v) => `$${fmt(v)}/s`, state.income()))
+  boards.draw(0, rows(0, (r) => r[2], (v) => `1 in ${fmt(v)}`, state.S.stats.bestOdds), footerFor(0))
+  boards.draw(1, rows(1, (r) => r[1], (v) => fmt(v), state.S.stats.catches), footerFor(1))
+  boards.draw(2, rows(2, (r) => r[3], (v) => `$${fmt(v)}/s`, state.income()), footerFor(2))
 }
 drawBoards()
-// The server's top lists (they replay at once if they already arrived).
+// The server's top lists and your ranks (they replay at once if they already arrived).
 if (online) {
-  net.onLeaderboard(({ boards }) => {
+  net.onLeaderboard(({ boards, ranks }) => {
     serverBoards = boards
+    serverRanks = ranks ?? null
     drawBoards()
   })
 }
 document.fonts?.ready?.then(drawBoards)
-setInterval(drawBoards, 60000)
+setInterval(drawBoards, 15000) // your own row follows your live numbers
 setInterval(refreshLiveBoards, 60000)
 setInterval(submitScores, 30000)
 setTimeout(() => {

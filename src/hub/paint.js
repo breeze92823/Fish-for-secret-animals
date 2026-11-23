@@ -477,7 +477,8 @@ export function paintBadge({ skin = '#f2c79a', hair = '#3a2416', shirt = '#3fa6f
 }
 
 // --- Leaderboards ----------------------------------------------------------------------
-// rows: [{ name, value, me }], drawn on a navy screen with medal ranks.
+// rows: [{ name, value, me, rank? }], drawn on a navy screen with medal ranks. `rank` overrides the
+// row's place (a player outside the top 10 gets their own row at the bottom with their real rank).
 export function paintBoard(c, rows, { footer = 'Updates every minute' } = {}) {
   const w = c.width
   const h = c.height
@@ -493,15 +494,17 @@ export function paintBoard(c, rows, { footer = 'Updates every minute' } = {}) {
     const y = 18 + i * rowH
     ctx.fillStyle = r.me ? 'rgba(255,220,80,0.22)' : i % 2 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'
     ctx.fillRect(12, y + 2, w - 24, rowH - 4)
-    const medal = ['#ffcc33', '#d6dde6', '#e08a4a'][i]
+    const place = r.rank ?? i + 1
+    const medal = ['#ffcc33', '#d6dde6', '#e08a4a'][place - 1]
     ctx.fillStyle = medal ?? 'rgba(255,255,255,0.0)'
     ctx.beginPath()
     ctx.arc(40, y + rowH / 2, rowH * 0.32, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = medal ? '#2a1a00' : '#c9d3ff'
-    ctx.font = `700 ${Math.round(rowH * 0.42)}px Fredoka, sans-serif`
+    const digits = String(place).length
+    ctx.font = `700 ${Math.round(rowH * (digits > 3 ? 0.25 : digits > 2 ? 0.3 : 0.42))}px Fredoka, sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText(String(i + 1), 40, y + rowH / 2 + 1)
+    ctx.fillText(String(place), 40, y + rowH / 2 + 1)
     // Little avatar dot.
     ctx.fillStyle = r.color ?? '#7fa8ff'
     ctx.beginPath()
