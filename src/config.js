@@ -193,7 +193,6 @@ export const SETTINGS = {
   graphics_quality: { def: DEFAULT_GRAPHICS, type: 'enum', values: ['Low', 'Medium', 'High', 'Ultra'] },
   camera_sensitivity: { def: '1', type: 'number', min: 0.1, max: 5 },
   show_fps: { def: 'false', type: 'bool' },
-  fullscreen: { def: 'false', type: 'bool' },
   master_volume: { def: '100', type: 'number', min: 0, max: 100 },
   music_volume: { def: '100', type: 'number', min: 0, max: 100 },
 }

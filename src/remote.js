@@ -242,21 +242,41 @@ export function createRemotePlayers(scene, { fx, sfx, pens, localPos }) {
   const remotes = new Map() // sessionId -> RemotePlayer
   const flights = []
   const mgr = { scene, emoteCatalogue: null }
-  let first = true
   void bloxity.loadEmotes().then((c) => (mgr.emoteCatalogue = c))
+
+  // Tells the portal who is in the room (Bloxity friend toasts: "X joined you" / "you joined X's
+  // lobby"; non-friends produce nothing). Players present when WE joined (the first roster, or the
+  // one after a rejoin: a new session id) go through playerInRoom, everyone after through
+  // playerJoined. A player is reported once, as soon as their name is known: the name can arrive a
+  // moment after the roster entry (the server swaps in the verified Bloxity name).
+  const ALREADY_THERE_MS = 3000
+  let joinedSession = ''
+  let joinedAt = 0
 
   // Roster changes (net.onRoster): remotes appear / leave.
   function sync(list) {
+    const now = performance.now()
+    const mine = list.find((e) => e.me)?.id ?? ''
+    if (mine && mine !== joinedSession) {
+      joinedSession = mine
+      joinedAt = now
+    }
     const seen = new Set()
     for (const e of list) {
       if (e.me) continue
       seen.add(e.id)
-      if (!remotes.has(e.id)) {
-        remotes.set(e.id, new RemotePlayer(mgr, e.id, e.p))
-        if (e.name) (first ? bloxity.playerInRoom : bloxity.playerJoined)(e.name)
+      let r = remotes.get(e.id)
+      if (!r) {
+        r = new RemotePlayer(mgr, e.id, e.p)
+        r.seenAt = now
+        r.reported = false
+        remotes.set(e.id, r)
+      }
+      if (!r.reported && e.name) {
+        r.reported = true
+        ;(r.seenAt - joinedAt < ALREADY_THERE_MS ? bloxity.playerInRoom : bloxity.playerJoined)(e.name)
       }
     }
-    first = false
     for (const [id, r] of remotes) {
       if (seen.has(id)) continue
       pens[r.p.base]?.syncRemote('', 0)

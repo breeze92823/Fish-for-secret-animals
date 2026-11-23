@@ -55,7 +55,6 @@ let fx = null
 
 function applySetting(key, value) {
   if (key === 'camera_sensitivity') setCameraSensitivity(value)
-  else if (key === 'fullscreen') bloxity.requestFullscreen(value)
   else if (key === 'master_volume') setVolume(value / 100)
   else if (key === 'graphics_quality' && renderer) {
     const next = graphicsPreset(value)

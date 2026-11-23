@@ -330,13 +330,12 @@ function attach(room) {
       emit(eventListeners.get(type) ?? [], m)
     })
   }
-  // Server messages this client does not use yet: swallow them without the SDK's console warning.
+  // Live-only server messages (the save arrives as `game`, see hookGame).
   room.onMessage('invites', (m) => emit(inviteListeners, Number(m?.invites) || 0))
   room.onMessage('leaderboard', (m) => {
     lastBoards = m
     emit(boardListeners, m)
   })
-  for (const type of ['noProgress', 'progress']) room.onMessage(type, () => {})
   room.onStateChange(() => publishRoster(room))
   publishRoster(room)
   room.onDrop?.(() => setStatus('reconnecting')) // the SDK reconnects with the same seat by itself

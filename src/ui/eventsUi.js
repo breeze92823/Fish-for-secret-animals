@@ -118,7 +118,7 @@ export function createEventsUi({ hud, sfx, boss, celebrate }) {
     }
     if (item.potion) state.addPotion(item.potion, item.minutes)
     if (item.lucky) state.S.luckyCredits = Math.min(99, (state.S.luckyCredits | 0) + item.lucky)
-    if (item.lure) state.S.lures = (state.S.lures | 0) + item.lure
+    if (item.lure) state.S.lures = Math.min(999, (state.S.lures | 0) + item.lure) // backend GAME_LIMITS caps lures at 999
     state.save()
     sfx.upgrade()
     celebrate?.()

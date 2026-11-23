@@ -21,7 +21,7 @@ SDK integrations in the client (`src/bloxity.js` is the only place that calls th
 - init, loading steps, `loadingEnd` + `gameplayStart` after the first frame, `gameplayEnd` on unload
 - auth (`onUserChanged`) and the player's token (`getToken`), sent to the game server which verifies it with Bloxity
   (`POST /v1/auth/game-token/verify`); the server never trusts a user id the client sends
-- settings: `graphics_quality`, `camera_sensitivity`, `show_fps`, `fullscreen`, `master_volume`, `music_volume`
+- settings: `graphics_quality`, `camera_sensitivity`, `show_fps`, `master_volume`, `music_volume` (`fullscreen` is applied by the portal)
 - avatar + proportions, avatar customizer, `respawn_request`, `portal.showMenu` on Esc, reserved UI areas
 - other players' looks: `getSkinTextureUrlFor` + the replicated equipped ids and proportions
 - ads: break handlers (pause + mute), `declareScreens` (`gameplay` off, `panel`): no banners while the player plays, only while a window is open,
@@ -29,7 +29,8 @@ SDK integrations in the client (`src/bloxity.js` is the only place that calls th
 - leaderboards: `leaderboard.define` (client) + hosted score reports (server, `src/reporter.ts`: `/v1/leaderboards/hosted/{gameId}/report`
   with `BLOXITY_REPORT_TOKEN`, verified accounts only, as `legion_<id>`); the plaza boards show the server's real top lists
 - chat bubbles (`chat.onMessage`, `attachBubble`) and emotes (`registerFeature('emotes')`, `play_emote`, `src/avatar/emotes.js`)
-- party play: automatic on Bloxity hosting; `party.enable` + `party.joined`
+- party play and CrazyGames' Play with friends: automatic on Bloxity hosting through the matchmaker; `party.enable` + `party.joined` (no `registerFeature('play_with_friends')`: the game does not handle `?instantMultiplayer=true`)
+- environment: no Bloxity host is written in the code; `src/boxityEnv.js` reads the environment Bloxity told the page (prod fallback only)
 - Open Rooms: the backend runs the room reporter (`src/legion-room-reporter.ts`, needs the `MATCHMAKER_REPORT_URL`,
   `BLOXITY_REPORT_TOKEN` and `BLOXITY_GAME_ID` that Bloxity hosting injects), the client reports its room with `updateRoom`
   (`relay~room`) and joins a `?roomId=` launch through the pod's relay (`locateRoom`)

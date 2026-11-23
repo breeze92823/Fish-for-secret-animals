@@ -3,6 +3,7 @@
 // game fully playable on the default avatar and keyboard controls.
 // Docs: https://docs.bloxity.io/#html5
 import { GAME_SLUG, GAME_TITLE, SETTINGS, DEV_MODE, PENS, LEADERBOARDS, coerceSetting } from './config.js'
+import { boxityEnv } from './boxityEnv.js'
 
 export function sdk() {
   if (DEV_MODE) return null
@@ -140,13 +141,7 @@ export function getPfp() {
   const raw = authState.user?.pfp || authState.guest?.pfp
   if (typeof raw !== 'string' || !raw) return ''
   try {
-    let base = 'https://static.bloxity.io'
-    try {
-      base = sdk()?.environment?.()?.staticUrl || base
-    } catch {
-      // Older SDK builds have no environment().
-    }
-    const url = new URL(raw, base)
+    const url = new URL(raw, boxityEnv().staticUrl)
     return /^https?:$/.test(url.protocol) ? url.href : ''
   } catch {
     return ''
@@ -170,8 +165,8 @@ export function init() {
   }
 
   try {
-    const onLocalhost = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
-    SDK.init(onLocalhost ? { gameSlug: GAME_SLUG, portalUrl: 'https://bloxity.io' } : { gameSlug: GAME_SLUG })
+    // The SDK learns the environment (prod / stage / local) from Boxity; never guess it from the host.
+    SDK.init({ gameSlug: GAME_SLUG })
     SDK.game.loadingStep(`Loading ${GAME_TITLE}`)
 
     for (const key of Object.keys(SETTINGS)) {
@@ -213,10 +208,12 @@ export function init() {
       }),
     )
 
-    // Capabilities (right after init, not after loading): the emote picker, friend joins, parties.
+    // Capabilities (right after init, not after loading): the emote picker and parties. Play with
+    // friends (CrazyGames) comes free on Boxity hosting through the matchmaker, so it is NOT announced
+    // with registerFeature('play_with_friends'): that is only for games that handle
+    // ?instantMultiplayer=true and make their own private rooms.
     try {
       SDK.game.registerFeature?.('emotes')
-      SDK.game.registerFeature?.('play_with_friends')
       SDK.party?.enable?.({ maxPartySize: PENS.xs.length }) // a room holds one player per base
     } catch (err) {
       console.warn('[bloxity] feature registration failed', err)
@@ -433,17 +430,6 @@ function estimatedReservedAreas(w, h) {
     { id: 'toolbar', left: 0, top: 0, width: Math.min(w, w < 480 ? w : 330), height: toolbarHeight },
     { id: 'chat', left: 0, top: toolbarHeight, width: Math.round(chatWidth + 8), height: compact ? 140 : 180 },
   ]
-}
-
-export function requestFullscreen(on) {
-  try {
-    const SDK = sdk()
-    if (!SDK) return
-    if (on) SDK.portal.requestFullscreen()
-    else SDK.portal.exitFullscreen()
-  } catch {
-    // Ignore.
-  }
 }
 
 // --- Multiplayer helpers ------------------------------------------------------
