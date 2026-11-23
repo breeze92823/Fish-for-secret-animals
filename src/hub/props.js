@@ -21,7 +21,7 @@ import { label, neon, solidBox } from '../propkit.js'
 import { cbox, ccyl, cgeo, flat, merge } from './geo.js'
 import { paintBoard } from './paint.js'
 import { studMaterial } from './world.js'
-import { foodMesh } from '../game/foods.js'
+import { baitMesh, foodMesh } from '../game/foods.js'
 
 const vc = new MeshStandardMaterial({ vertexColors: true, roughness: 0.62 })
 const vcShiny = new MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.7 })
@@ -55,6 +55,7 @@ export function dashedRing(r, color = '#ffffff', n = 18) {
 // --- Stalls --------------------------------------------------------------------------------
 // A market stall facing +Z (local): posts, counter, striped awning, crates of food.
 function stall(stripeA, stripeB, title, titleColor, foods) {
+  const model = (it) => (typeof it === 'string' ? foodMesh(it) : baitMesh(it.bait, 0.82))
   const g = new Group()
   const p = []
   const wood = '#b8743c'
@@ -81,17 +82,17 @@ function stall(stripeA, stripeB, title, titleColor, foods) {
     c.position.set(x, 1.76, -0.9)
     c.castShadow = true
     g.add(c)
-    const f = foodMesh(foods[i % foods.length])
+    const f = model(foods[i % foods.length])
     f.scale.setScalar(0.7)
     f.position.set(x, 2.08, -0.9)
     f.rotation.y = i
     g.add(f)
   })
-  const f2 = foodMesh(foods[0])
+  const f2 = model(foods[0])
   f2.scale.setScalar(0.65)
   f2.position.set(-0.9, 1.35, 0.75)
   g.add(f2)
-  const f3 = foodMesh(foods[1 % foods.length])
+  const f3 = model(foods[1 % foods.length])
   f3.scale.setScalar(0.65)
   f3.position.set(0.8, 1.35, 0.7)
   g.add(f3)
@@ -102,18 +103,25 @@ function stall(stripeA, stripeB, title, titleColor, foods) {
   return g
 }
 
-export function buildFoodShop(root) {
-  const { x, z } = POI.foodShop
-  const g = stall('#e8262e', '#ffffff', 'Food Shop', '#e8262e', ['apple', 'cookie', 'donut'])
-  g.position.set(x, 0, z + 1.8) // behind its ring, awning facing north into the meadow
-  g.rotation.y = Math.PI + 0.35
+// The shared market row by the leaderboards: each stall stands just north of its ring (POI) with
+// its counter facing south into the meadow.
+function shopStall(root, poi, color, ringColor, title, items) {
+  const { x, z } = poi
+  const g = stall(color, '#ffffff', title, color, items)
+  g.position.set(x, 0, z - 1.8)
   root.add(g)
-  const ring = groundRing(POI.foodShop.r, '#ff3030', 0.28)
+  const ring = groundRing(poi.r, ringColor, 0.28)
   ring.position.set(x, 0.04, z)
   root.add(ring)
-  solidBox(1.9, 1.3, 1.25, x, 1.3, z + 1.8, 0.35) // the whole stall footprint
+  solidBox(1.9, 1.3, 1.25, x, 1.3, z - 1.8) // the whole stall footprint
   return { group: g, ring }
 }
+// Rod Shop: opens Rods & Bait on the RODS tab.
+export const buildFoodShop = (root) => shopStall(root, POI.foodShop, '#e8262e', '#ff3030', 'Rod Shop', ['bamboo', 'golden', 'rainbow'])
+// Bait Shop: lures on the shelf; opens Rods & Bait on the BAIT tab.
+export const buildBaitShop = (root) => shopStall(root, POI.baitShop, '#19b6a6', '#2ee8d0', 'Bait Shop', [{ bait: 'golden' }, { bait: 'rainbow' }, { bait: 'jackpot' }])
+// Trail Shop: opens the Trail Shop.
+export const buildTrailShop = (root) => shopStall(root, POI.trailShop, '#a13cf0', '#c04aff', 'Trail Shop', ['aurora', 'nebula', 'prism'])
 
 export function buildSell(root) {
   const { x, z } = POI.sell
@@ -164,7 +172,7 @@ export function buildFuse(root) {
   const screenTex = new CanvasTexture(sc)
   screenTex.colorSpace = SRGBColorSpace
   const screen = new Mesh(new PlaneGeometry(1.8, 1.8), new MeshBasicMaterial({ map: screenTex }))
-  screen.position.set(0.8, 1.65, 1.31)
+  screen.position.set(0.8, 1.65, 1.33) // 3 cm proud of the frame (1.30): no z-fighting
   g.add(screen)
   function drawScreen(text = '?', progress = -1, color = '#2f6fe0') {
     const x2 = sc.getContext('2d')
@@ -371,8 +379,8 @@ function icon(kind) {
 
 export function buildBoards(root) {
   const defs = [
-    { title: 'BEST PULL', sub: 'Rarest baddie ever caught', color: '#9b5bff', icon: 'clover' },
-    { title: 'MOST BADDIES', sub: 'Baddies caught', color: '#ff4fa8', icon: 'carrot' },
+    { title: 'BEST PULL', sub: 'Rarest animal ever caught', color: '#9b5bff', icon: 'clover' },
+    { title: 'MOST BADDIES', sub: 'Animals caught', color: '#ff4fa8', icon: 'carrot' },
     { title: 'TOP MONEY/S', sub: 'Highest income', color: '#3fcf3a', icon: 'cash' },
   ]
   const boards = defs.map((d, i) => {
@@ -382,7 +390,8 @@ export function buildBoards(root) {
     // Wooden frame: a back panel, chunky lighter rails round the screen, two feet.
     const fp = [cbox(7.4, 7.0, 0.5, '#8a5128', 0, 3.5, 0.25)]
     fp.push(cbox(7.6, 0.45, 0.75, '#a8662f', 0, 0.22, 0.4), cbox(0.5, 6.6, 0.75, '#a8662f', -3.55, 3.4, 0.4), cbox(0.5, 6.6, 0.75, '#a8662f', 3.55, 3.4, 0.4))
-    for (let k = -3; k <= 3; k += 1.5) fp.push(ccyl(0.14, 0.14, 0.12, '#b8743c', k, 0.5, 0.82, Math.PI / 2, 0, 0, 10))
+    // Pegs stand 2.5 cm proud of the cast band's pillar face (5 mm z-fought from afar).
+    for (let k = -3; k <= 3; k += 1.5) fp.push(ccyl(0.14, 0.14, 0.12, '#b8743c', k, 0.5, 0.84, Math.PI / 2, 0, 0, 10))
     g.add(mesh(merge(fp)))
     const hp = []
     hp.push(cbox(7.8, 1.5, 0.8, d.color, 0, 7.4, 0.5))
@@ -513,7 +522,7 @@ function addFixedBarrier(z, W) {
 
 
 // --- The yellow throw band ------------------------------------------------------------------------
-// A bright stud plate across the lane mouth: hazard-striped kerbs, "THROW!" painted on it,
+// A bright stud plate across the lane mouth: hazard-striped kerbs, "CAST!" painted on it,
 // chevrons rippling north, a pulsing spot where you stand, a curtain of light along the
 // throw line and two brick pillars with glowing orbs. update() animates it (brighter while
 // the player stands on it or is mid-throw).
@@ -553,7 +562,7 @@ export function buildThrowBand(root) {
     g.add(o)
     return o
   })
-  // "THROW!" painted on the plate (reads from the hub side).
+  // "CAST!" painted on the plate (reads from the hub side).
   const c = document.createElement('canvas')
   c.width = 1024
   c.height = 256
@@ -568,9 +577,9 @@ export function buildThrowBand(root) {
     x.lineJoin = 'round'
     x.lineWidth = 34
     x.strokeStyle = '#b86a00'
-    x.strokeText('THROW!', 512, 136)
+    x.strokeText('CAST!', 512, 136)
     x.fillStyle = '#ffffff'
-    x.fillText('THROW!', 512, 136)
+    x.fillText('CAST!', 512, 136)
     tex.needsUpdate = true
   }
   paint()

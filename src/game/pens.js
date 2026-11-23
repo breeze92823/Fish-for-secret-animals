@@ -9,6 +9,7 @@
 import { CanvasTexture, CylinderGeometry, Group, Mesh, MeshStandardMaterial, PlaneGeometry, Sprite, SpriteMaterial, SRGBColorSpace, Vector3 } from 'three'
 import { NEIGHBOURS, PENS, POI, RARITIES, SIZES, TRAINING } from '../config.js'
 import { label, solidBox } from '../propkit.js'
+import { removeFixed } from '../physics.js'
 import { cbox, ccyl, flat, merge } from '../hub/geo.js'
 import { dynLabel } from '../hub/dynlabel.js'
 import { paintBadge, paintPlanks } from '../hub/paint.js'
@@ -36,8 +37,8 @@ function pickMove(list) {
 const tmpV = new Vector3()
 const tmpW = new Vector3()
 
-function fenceParts(parts, cx, cz) {
-  const { halfW: W, halfD: D } = PENS
+function fenceParts(parts, cols, cx, cz, D) {
+  const W = PENS.halfW
   const post = '#6b3b1e'
   const rail = '#8f5428'
   const gate = 2.2 // half-width of the gate gap
@@ -67,11 +68,13 @@ function fenceParts(parts, cx, cz) {
   railZ(-D, D, W)
   // Colliders: three full sides and the front either side of the gate.
   const h = 0.8
-  solidBox(W, h, 0.2, cx, y0 + h, cz + D)
-  solidBox(0.2, h, D, cx - W, y0 + h, cz)
-  solidBox(0.2, h, D, cx + W, y0 + h, cz)
-  solidBox((W - gate) / 2, h, 0.2, cx - (W + gate) / 2, y0 + h, cz - D)
-  solidBox((W - gate) / 2, h, 0.2, cx + (W + gate) / 2, y0 + h, cz - D)
+  cols.push(
+    solidBox(W, h, 0.2, cx, y0 + h, cz + D),
+    solidBox(0.2, h, D, cx - W, y0 + h, cz),
+    solidBox(0.2, h, D, cx + W, y0 + h, cz),
+    solidBox((W - gate) / 2, h, 0.2, cx - (W + gate) / 2, y0 + h, cz - D),
+    solidBox((W - gate) / 2, h, 0.2, cx + (W + gate) / 2, y0 + h, cz - D),
+  )
 }
 
 // Gate arch: two chunky stacked posts with a pale crossbar.
@@ -103,7 +106,7 @@ function makeSign(root, x, z) {
   const tex = new CanvasTexture(c)
   tex.colorSpace = SRGBColorSpace
   const face = new Mesh(new PlaneGeometry(2.55, 1.1), new MeshStandardMaterial({ map: tex, roughness: 0.8 }))
-  face.position.set(0, 1.55, -0.08)
+  face.position.set(0, 1.55, -0.13) // clear of the board (-0.07) and the posts (-0.1): closer z-fought from afar
   face.rotation.y = Math.PI // faces north (the open meadow)
   g.add(face)
   root.add(g)
@@ -181,6 +184,8 @@ export class Pen {
     this.index = index
     this.cx = PENS.xs[index]
     this.cz = PENS.z
+    this.halfD = PENS.halfD
+    this.grown = 0 // m the north fence has moved out (capacity upgrades; layout())
     this.isPlayer = index === mine
     this.online = online
     this.owner = this.isPlayer || online ? null : NEIGHBOURS[index]
@@ -188,33 +193,15 @@ export class Pen {
     this.baddies = new Map() // uid -> { b: Baddie, target, wait, entry }
     this.group = new Group()
     root.add(this.group)
-    // Floor.
-    const floorMat = studMaterial('#f2955a', '#e98a4c', { seed: 9 })
-    const { halfW: W, halfD: D, floorHeight: H } = PENS
-    const fl = new Mesh(flat(this.cx - W, this.cx + W, this.cz - D, this.cz + D, H, 4), floorMat)
-    fl.receiveShadow = true
-    this.group.add(fl)
-    const edge = new Mesh(merge([cbox(W * 2 + 0.2, H, D * 2 + 0.2, '#d97a3e', this.cx, H / 2 - 0.01, this.cz)]), vc)
-    edge.receiveShadow = true
-    this.group.add(edge)
-    solidBox(W, H / 2, D, this.cx, H / 2, this.cz)
-    const parts = []
-    fenceParts(parts, this.cx, this.cz)
-    const gx = this.cx + POI.gateOffset.x
-    const gz = this.front.z - 2.2
-    gateParts(parts, gx, gz)
-    for (const s of [-1, 1]) solidBox(0.4, 1.7, 0.4, gx + s * 2.4, 1.7, gz)
-    const fence = new Mesh(merge(parts), vc)
-    fence.castShadow = fence.receiveShadow = true
-    this.group.add(fence)
-    const dash = dashedRing(2.1)
-    dash.position.set(gx, 0, gz - 1.2)
-    this.group.add(dash)
-    this.dropSpot = new Vector3(gx, 0, gz - 1.2)
-    this.sign = makeSign(this.group, this.front.x + PENS.halfW - 1.8, this.front.z - POI.signOffset.z - 0.3)
-    this.signSpot = new Vector3(this.front.x + PENS.halfW - 1.8, 0, this.front.z - 2.2)
-    this.pad = makePad(this.group, this.front.x + POI.padOffset.x, this.front.z + POI.padOffset.z)
+    this.floorMat = studMaterial('#f2955a', '#e98a4c', { seed: 9 })
+    this.shell = null // floor + fence + gate meshes, rebuilt when the pen grows
+    this.cols = [] // their colliders
+    this.dropSpot = new Vector3()
+    this.signSpot = new Vector3()
+    this.sign = makeSign(this.group, 0, 0)
+    this.pad = makePad(this.group, 0, 0)
     this.padSpot = this.pad.group.position
+    this.layout(0)
     // Owner badge + name + income.
     const look = this.owner ?? { skin: '#f2c79a', hair: '#5a3418', shirt: '#2f2f3a' }
     const badgeCanvas = paintBadge({ skin: look.skin, hair: look.hair, shirt: look.shirt, bg: this.isPlayer ? '#4a3a8a' : '#2b3a66' })
@@ -222,11 +209,12 @@ export class Pen {
     this.badgeTex.colorSpace = SRGBColorSpace
     this.badge = new Sprite(new SpriteMaterial({ map: this.badgeTex, transparent: true, depthWrite: false }))
     this.badge.scale.set(4.2, 4.2, 1)
-    this.badge.position.set(this.cx, 10.5, this.cz + D - 1)
+    const backZ = PENS.z + PENS.halfD - 1 // the badge floats over the back fence, which never moves
+    this.badge.position.set(this.cx, 10.5, backZ)
     this.group.add(this.badge)
     this.badgeCanvas = badgeCanvas
     this.info = dynLabel(1.0, { lines: 2, width: 760 })
-    this.info.sprite.position.set(this.cx, 7.3, this.cz + D - 1)
+    this.info.sprite.position.set(this.cx, 7.3, backZ)
     this.group.add(this.info.sprite)
     this.name = this.owner?.name ?? 'You'
     this.setIncome(0)
@@ -245,6 +233,52 @@ export class Pen {
       for (const id of this.owner.team) this.add({ uid: `n${index}-${id}`, id, size: 0 })
       this.setIncome(this.owner.team.reduce((s, id) => s + BY_ID[id].income, 0))
     }
+  }
+
+  // Builds the floor, fence and gate for a pen whose north fence has moved `grown` m out toward the
+  // river (the south fence never moves) and puts the gate, drop spot, sign and pad in front of it.
+  // Called again by grow(); the old meshes and colliders are dropped.
+  layout(grown) {
+    this.grown = grown
+    this.halfD = PENS.halfD + grown / 2
+    this.cz = PENS.z - grown / 2
+    this.front.set(this.cx, 0, this.cz - this.halfD)
+    if (this.shell) {
+      this.shell.traverse((m) => {
+        m.geometry?.dispose()
+        if (m.material && m.material !== vc && m.material !== this.floorMat) m.material.dispose() // the dashed ring's own
+      })
+      this.shell.removeFromParent()
+    }
+    for (const c of this.cols) removeFixed(c)
+    this.cols = []
+    const shell = (this.shell = new Group())
+    const { halfW: W, floorHeight: H } = PENS
+    const D = this.halfD
+    const fl = new Mesh(flat(this.cx - W, this.cx + W, this.cz - D, this.cz + D, H, 4), this.floorMat)
+    fl.receiveShadow = true
+    shell.add(fl)
+    const edge = new Mesh(merge([cbox(W * 2 + 0.2, H, D * 2 + 0.2, '#d97a3e', this.cx, H / 2 - 0.03, this.cz)]), vc) // top 3 cm under the floor: no z-fighting
+    edge.receiveShadow = true
+    shell.add(edge)
+    this.cols.push(solidBox(W, H / 2, D, this.cx, H / 2, this.cz))
+    const parts = []
+    fenceParts(parts, this.cols, this.cx, this.cz, D)
+    const gx = this.cx + POI.gateOffset.x
+    const gz = this.front.z - 2.2
+    gateParts(parts, gx, gz)
+    for (const s of [-1, 1]) this.cols.push(solidBox(0.4, 1.7, 0.4, gx + s * 2.4, 1.7, gz))
+    const fence = new Mesh(merge(parts), vc)
+    fence.castShadow = fence.receiveShadow = true
+    shell.add(fence)
+    const dash = dashedRing(2.1)
+    dash.position.set(gx, 0, gz - 1.2)
+    shell.add(dash)
+    this.group.add(shell)
+    this.dropSpot.set(gx, 0, gz - 1.2)
+    this.sign.group.position.set(this.front.x + PENS.halfW - 1.8, 0, this.front.z - POI.signOffset.z - 0.3)
+    this.signSpot.set(this.front.x + PENS.halfW - 1.8, 0, this.front.z - 2.2)
+    this.pad.group.position.set(this.front.x + POI.padOffset.x, 0, this.front.z + POI.padOffset.z)
   }
 
   setName(name) {
@@ -341,7 +375,7 @@ export class Pen {
   }
 
   randomSpot(margin = 1.4) {
-    return new Vector3(this.cx + rnd(-PENS.halfW + margin, PENS.halfW - margin), PENS.floorHeight, this.cz + rnd(-PENS.halfD + margin, PENS.halfD - margin))
+    return new Vector3(this.cx + rnd(-PENS.halfW + margin, PENS.halfW - margin), PENS.floorHeight, this.cz + rnd(-this.halfD + margin, this.halfD - margin))
   }
 
   // entry: { uid, id, size }. from: optional world position it arrives from (drops in).
@@ -487,7 +521,7 @@ export class Pen {
         }
       }
       p.x = Math.max(this.cx - PENS.halfW + 0.8, Math.min(this.cx + PENS.halfW - 0.8, p.x))
-      p.z = Math.max(this.cz - PENS.halfD + 0.8, Math.min(this.cz + PENS.halfD - 0.8, p.z))
+      p.z = Math.max(this.cz - this.halfD + 0.8, Math.min(this.cz + this.halfD - 0.8, p.z))
       b.update(dt)
       // Rare ones glitter.
       if (fx && b.def.rarity >= 3 && Math.random() < dt * (b.def.rarity - 1.5)) fx.motes(p, RARITIES[b.def.rarity].glow, 1, 0.9, { rise: 1.2, size: 0.25 })
@@ -496,11 +530,11 @@ export class Pen {
 }
 
 Pen.prototype.inside = function (pos) {
-  return Math.abs(pos.x - this.cx) < PENS.halfW && Math.abs(pos.z - this.cz) < PENS.halfD
+  return Math.abs(pos.x - this.cx) < PENS.halfW && Math.abs(pos.z - this.cz) < this.halfD
 }
 Pen.prototype.clampSpot = function (v, margin = 1) {
   v.x = Math.max(this.cx - PENS.halfW + margin, Math.min(this.cx + PENS.halfW - margin, v.x))
-  v.z = Math.max(this.cz - PENS.halfD + margin, Math.min(this.cz + PENS.halfD - margin, v.z))
+  v.z = Math.max(this.cz - this.halfD + margin, Math.min(this.cz + this.halfD - margin, v.z))
   return v
 }
 // The effects of an appeal cue: hearts, sparkles and the move's sound (quieter further away).

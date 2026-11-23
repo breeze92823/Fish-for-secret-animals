@@ -12,6 +12,7 @@
 import { AdditiveBlending, CircleGeometry, ConeGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, OctahedronGeometry, RingGeometry, SphereGeometry, TorusGeometry } from 'three'
 import { TRAINING } from '../config.js'
 import { neon, solidBox } from '../propkit.js'
+import { removeFixed } from '../physics.js'
 import { cbox, ccyl, cgeo, merge } from './geo.js'
 import { dashedRing } from './props.js'
 import { dynLabel } from './dynlabel.js'
@@ -383,8 +384,12 @@ export function buildTrainingStation(root, { tier = 0 } = {}) {
   let curTier = tier
 
   // Colliders for the two pillars (you stand between them).
-  solidBox((S + 0.3) / 2, H / 2, (S + 0.3) / 2, spot.x - HALF, H / 2, spot.z)
-  solidBox((S + 0.3) / 2, H / 2, (S + 0.3) / 2, spot.x + HALF, H / 2, spot.z)
+  let cols = []
+  const pillars = () => {
+    for (const c of cols) removeFixed(c)
+    cols = [-1, 1].map((s) => solidBox((S + 0.3) / 2, H / 2, (S + 0.3) / 2, spot.x + s * HALF, H / 2, spot.z))
+  }
+  pillars()
 
   // Dashed ring round bench + pad, a soft glow disc and a pulse ring for each rep. The ring is
   // centred between the bar and the pad.
@@ -421,6 +426,14 @@ export function buildTrainingStation(root, { tier = 0 } = {}) {
   let pulseColor = '#ffffff'
   return {
     group: g,
+    // Moves the bench (and TRAINING.spot, which game/training.js reads live) to x, z: it rides in
+    // front of your pen, which grows north with every capacity upgrade (main.js).
+    moveTo(x, z) {
+      spot.x = x
+      spot.z = z
+      g.position.set(x, 0, z)
+      pillars()
+    },
     barY: BAR_Y,
     // Where the hands grip (world space): the middle of the bar.
     gripY: BAR_Y,
@@ -513,7 +526,7 @@ export function buildTrainingStation(root, { tier = 0 } = {}) {
       const def = TRAINING.benches[curTier]
       sign.set([
         { text: def.name, color: def.glow === '#ffffff' ? '#ffd23a' : def.glow },
-        { text: `Training Lv ${level}  +${TRAINING.strengthPerLevel} Strength`, color: '#7dff4a', scale: 0.62 },
+        { text: `Training Lv ${level}  +${TRAINING.strengthPerLevel} Power`, color: '#7dff4a', scale: 0.62 },
       ])
     },
   }

@@ -692,3 +692,625 @@ body.throw-mode .touch-root {
     height: 8vh;
   }
 }
+
+/* =====================================================================================
+   Fishing look (matches the reference art). Placed last so it wins over the rules above.
+   ===================================================================================== */
+/* Cinematic bars while you line up the cast (and the Power readout in the bottom bar). */
+.tu.ph-enter .tu-bars i,
+.tu.ph-aim .tu-bars i,
+.tu.ph-windup .tu-bars i {
+  transform: none;
+}
+.tu-bars i {
+  height: 10vh;
+}
+.tu-power {
+  position: absolute;
+  left: calc(var(--safe-l, 0px) + 2vmin);
+  bottom: calc(var(--safe-b, 0px) + 1vh);
+  display: none;
+  align-items: center;
+  gap: 0.15em;
+  font-size: calc(var(--u) * 3.4);
+  color: #7ec8ff;
+  line-height: 1;
+}
+.tu-power svg {
+  width: 1.2em;
+  height: 1.2em;
+  filter: drop-shadow(0 0.08em 0 rgba(0, 0, 0, 0.4));
+}
+.tu.ph-aim .tu-power,
+.tu.ph-windup .tu-power {
+  display: flex;
+}
+
+/* Luck counter: big gold numbers straight on the scene, the area name on a dark band. */
+.tu-luck .cloud {
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+.tu-luck b {
+  font-size: calc(var(--u) * 6);
+  color: #ffcf2e;
+  -webkit-text-stroke: 0.14em #3a2000;
+  text-shadow: 0 0.06em 0 #8a4a00, 0 0.14em 0 rgba(0, 0, 0, 0.35);
+  letter-spacing: -0.01em;
+}
+.tu-luck small {
+  font-size: calc(var(--u) * 2);
+  color: #fff;
+}
+.tu-luck .zone {
+  margin-top: 0.15em;
+  min-width: min(44vw, 440px);
+  padding: 0.12em 1.6em;
+  background: linear-gradient(90deg, rgba(12, 16, 36, 0) 0%, rgba(12, 16, 36, 0.62) 14%, rgba(12, 16, 36, 0.62) 86%, rgba(12, 16, 36, 0) 100%);
+}
+.tu-luck .zone::after {
+  content: ' \1F33F';
+}
+
+/* Lucky Cast: a rainbow tile, clover on top, the offer under it, price tag below. */
+.tu-lucky {
+  grid-template-columns: auto;
+  justify-items: center;
+  gap: 0;
+  padding: 0.45em 0.9em 1em;
+  border: 0.24em solid #0d1220;
+  border-radius: 0.8em;
+  background: linear-gradient(135deg, #ff5fa8 0%, #ffb03a 22%, #ffe14a 38%, #6aff7a 55%, #3ad0ff 74%, #a06aff 100%);
+}
+.tu-lucky .txt {
+  align-items: center;
+  text-align: center;
+}
+.tu-lucky small {
+  font-size: 0.95em;
+}
+.tu-lucky b {
+  color: #fff;
+}
+
+/* Meter: tick marks like a ruler down the tube. */
+.tu-meter .tube {
+  background-image: repeating-linear-gradient(0deg, transparent 0 calc(16.66% - 2px), rgba(20, 24, 40, 0.75) calc(16.66% - 2px) 16.66%), linear-gradient(#ffd23a 0 3%, #b8f56a 8%, #e9f06a 45%, #ffc06a 72%, #ff7a9a 100%);
+}
+
+/* Reveal: no card, just the name in huge outlined letters with a tilted NEW! tag, the rarity
+   in its colour under it, the income in green, then "click to continue". */
+.tu-reveal .card,
+.tu-reveal.carded .card {
+  height: auto;
+  min-height: 0;
+  gap: 0.4vmin;
+  border: none;
+  background: none;
+  box-shadow: none !important;
+  animation: none;
+}
+.tu-reveal.carded .card {
+  animation: tu-float-in 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes tu-float-in {
+  from { transform: scale(1.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.tu-reveal .shine,
+.tu-reveal .new {
+  display: none !important;
+}
+.tu-reveal .name {
+  order: 1;
+  position: relative;
+  font-size: calc(var(--u) * 7.2);
+  -webkit-text-stroke: 0.1em #0d1220;
+  text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.4);
+}
+.tu-reveal .name .new-tag {
+  position: absolute;
+  left: 100%;
+  top: -0.2em;
+  margin-left: 0.15em;
+  padding: 0.08em 0.4em;
+  font-size: 0.42em;
+  font-style: normal;
+  color: #fff;
+  border: 0.1em solid #0d1220;
+  border-radius: 0.35em;
+  background: linear-gradient(#ffe14a, #ffb21f);
+  -webkit-text-stroke: 0.14em #0d1220;
+  transform: rotate(-14deg) scale(0);
+  animation: tu-newtag 0.4s 0.45s cubic-bezier(0.2, 1.8, 0.4, 1) forwards;
+}
+@keyframes tu-newtag {
+  0% { transform: rotate(-14deg) scale(3); opacity: 0; }
+  100% { transform: rotate(-14deg) scale(1); opacity: 1; }
+}
+.tu-reveal .tag {
+  order: 2;
+  position: static;
+  transform: none;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: calc(var(--u) * 3.4);
+  color: var(--rc, #e4e7ec);
+  -webkit-text-stroke: 0.16em #0d1220;
+}
+.tu-reveal .income {
+  order: 3;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: calc(var(--u) * 3.8);
+  color: #7dff4a;
+}
+.tu-reveal .income span {
+  -webkit-text-stroke: 0.16em #0d1220;
+}
+.tu-reveal .income i {
+  color: inherit;
+}
+/* Variant / season stamp: a small pill above the name (it used to cover the name). */
+.tu-reveal .vtag {
+  order: 0;
+  position: static;
+  transform: none;
+  font-size: calc(var(--u) * 1.7);
+}
+.tu-reveal.carded.has-v .vtag {
+  animation: tu-pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes tu-pop {
+  from { transform: scale(2); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.tu-reveal .full {
+  order: 4;
+  position: static;
+  font-size: calc(var(--u) * 1.9);
+}
+.tu-reveal.carded.is-full .full {
+  animation: tu-pop 0.4s 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  transform: rotate(-4deg);
+}
+/* Rare and up: the name glows in the rarity colour. */
+.tu-reveal.carded.r3 .name,
+.tu-reveal.carded.r4 .name,
+.tu-reveal.carded.r5 .name {
+  text-shadow: 0 0 0.25em var(--rg), 0 0.06em 0 rgba(0, 0, 0, 0.4);
+}
+.tu-continue {
+  font-size: calc(var(--u) * 2.4);
+  text-transform: lowercase;
+}
+@media (max-aspect-ratio: 1/1) {
+  .tu-reveal .name {
+    font-size: min(calc(var(--u) * 6), 12vw);
+  }
+  .tu-bars i {
+    height: 7vh;
+  }
+  .tu-power {
+    display: none !important; /* the Exit / Auto buttons sit in the bottom bar on phones */
+  }
+}
+/* Celestial and up: the name cycles through rainbow colours (a gradient clipped to the text
+   would fight the thick outline and read dark). */
+.tu-reveal.carded.r6 .name,
+.tu-reveal.carded.r7 .name,
+.tu-reveal.carded.r8 .name,
+.tu-reveal.carded.r9 .name {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: #ff8ad8;
+  animation: tu-hue 2.4s linear infinite;
+  text-shadow: 0 0 0.3em var(--rg), 0 0.06em 0 rgba(0, 0, 0, 0.4);
+}
+@keyframes tu-hue {
+  0%, 100% { color: #ff8ad8; }
+  25% { color: #7ffcff; }
+  50% { color: #ffe14a; }
+  75% { color: #7dff4a; }
+}
+/* Narrow screens: long names fill the width, so NEW! sits on the name's top-right corner. */
+@media (max-aspect-ratio: 1/1) {
+  .tu-reveal .name .new-tag {
+    left: auto;
+    right: -0.1em;
+    top: -0.95em;
+    margin: 0;
+  }
+}
+
+
+/* =====================================================================================
+   Animal's-eye view (the bait is in the water: we see through the animal's eyes first).
+   ===================================================================================== */
+.tu-pov {
+  --pk: 0;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.35s;
+  overflow: hidden;
+}
+.tu-pov.show {
+  opacity: 1;
+}
+.tu-pov .lens {
+  position: absolute;
+  inset: -4%;
+  background:
+    radial-gradient(ellipse at center, transparent calc(46% - var(--pk) * 18%), rgba(2, 32, 48, 0.55) calc(78% - var(--pk) * 14%), rgba(1, 14, 24, 0.92) 125%),
+    radial-gradient(circle at 50% 50%, rgba(120, 240, 255, 0.07), transparent 60%);
+  box-shadow: inset 0 0 14vmin rgba(0, 20, 34, 0.7);
+}
+.tu-pov.beat .lens {
+  animation: pov-beat 0.42s ease-out;
+}
+@keyframes pov-beat {
+  0% { transform: scale(0.94); filter: brightness(0.75); }
+  35% { transform: scale(1.02); filter: brightness(1.1); }
+  100% { transform: scale(1); filter: none; }
+}
+.tu-pov.ping::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20vmin;
+  height: 20vmin;
+  margin: -10vmin 0 0 -10vmin;
+  border-radius: 50%;
+  border: 0.8vmin solid rgba(190, 250, 255, 0.9);
+  animation: pov-ping 0.9s ease-out forwards;
+}
+@keyframes pov-ping {
+  0% { transform: scale(0.2); opacity: 1; }
+  100% { transform: scale(5); opacity: 0; }
+}
+.tu-pov .rec {
+  position: absolute;
+  left: max(3vmin, env(safe-area-inset-left));
+  top: calc(11vh + 2vmin);
+  display: flex;
+  align-items: center;
+  gap: 1.4vmin;
+  font-size: clamp(11px, 2.6vmin, 22px);
+  letter-spacing: 0.12em;
+  color: #bff8ff;
+}
+.tu-pov .rec i {
+  width: 2vmin;
+  height: 2vmin;
+  border-radius: 50%;
+  background: #ff4d5e;
+  box-shadow: 0 0 1.6vmin #ff4d5e;
+  animation: pov-rec 1s steps(2, jump-none) infinite;
+}
+@keyframes pov-rec {
+  50% { opacity: 0.15; }
+}
+.tu-pov .reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(46vmin - var(--pk) * 28vmin);
+  height: calc(46vmin - var(--pk) * 28vmin);
+  transform: translate(-50%, -50%) rotate(calc(var(--pk) * 90deg));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tu-pov.spot .reticle {
+  opacity: 1;
+}
+.tu-pov .reticle i {
+  position: absolute;
+  width: 22%;
+  height: 22%;
+  border: 0.7vmin solid #ffe14a;
+  filter: drop-shadow(0 0 1vmin rgba(255, 225, 74, 0.8));
+}
+.tu-pov .reticle i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.tu-pov .reticle i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.tu-pov .reticle i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.tu-pov .reticle i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.tu-pov .alert {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  transform: translateX(-50%) scale(0);
+  font-size: clamp(40px, 16vmin, 140px);
+  line-height: 1;
+  color: #ffe14a;
+}
+.tu-pov.spot .alert {
+  animation: pov-alert 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) forwards;
+}
+@keyframes pov-alert {
+  0% { transform: translateX(-50%) scale(0) rotate(-20deg); }
+  100% { transform: translateX(-50%) scale(1) rotate(0); }
+}
+.tu-pov .thought {
+  position: absolute;
+  left: 50%;
+  bottom: calc(11vh + 3vmin);
+  transform: translateX(-50%);
+  max-width: 90vw;
+  text-align: center;
+  font-size: clamp(14px, 4vmin, 34px);
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+.tu-pov .thought.pop {
+  animation: pov-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes pov-pop {
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+.tu-pov.lunge .lens {
+  background:
+    radial-gradient(ellipse at center, transparent 20%, rgba(2, 32, 48, 0.55) 55%, rgba(1, 14, 24, 0.95) 105%);
+}
+
+/* =====================================================================================
+   The cast show (THROW_MODE.castFx, ui.castShow): golden frame with speed rays and a grid,
+   the big per-letter "PERFECT CAST!" banner, the bonus line and flat confetti cubes.
+   ===================================================================================== */
+.tu-cast {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+}
+.tu-cast.go {
+  visibility: visible;
+  animation: tu-cast-life var(--life, 2.2s) linear forwards;
+}
+@keyframes tu-cast-life {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* Frame: off unless gold / silver. */
+.tu-cast .frame {
+  position: absolute;
+  inset: 0;
+  display: none;
+  --fa: rgba(255, 214, 90, 0.95);
+  --fb: rgba(190, 130, 20, 0.55);
+  --band: rgba(110, 78, 10, 0.62);
+  --ray: rgba(255, 248, 220, 0.6);
+  --gridc: rgba(255, 226, 140, 0.16);
+}
+.tu-cast.f-gold .frame,
+.tu-cast.f-silver .frame {
+  display: block;
+}
+.tu-cast.f-silver .frame {
+  --fa: rgba(220, 255, 140, 0.8);
+  --fb: rgba(120, 200, 255, 0.35);
+  --band: rgba(30, 60, 40, 0.4);
+  --ray: rgba(240, 255, 230, 0.45);
+  --gridc: rgba(220, 255, 200, 0.1);
+}
+.tu-cast .frame i {
+  position: absolute;
+  display: block;
+}
+.tu-cast .edge {
+  inset: 0;
+  box-shadow: inset 0 0 6vmin 1vmin var(--fa), inset 0 0 22vmin 4vmin var(--fb);
+  background: linear-gradient(180deg, var(--band) 0, transparent 16vh, transparent 84vh, var(--band) 100%);
+  animation: tu-edge 0.5s ease-in-out infinite alternate;
+}
+@keyframes tu-edge {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+/* Thin speed rays shooting out from the middle, clear round the player. */
+.tu-cast .rays {
+  left: 50%;
+  top: 50%;
+  width: 260vmax;
+  height: 260vmax;
+  margin: -130vmax 0 0 -130vmax;
+  background: repeating-conic-gradient(from 0deg, var(--ray) 0deg 0.35deg, transparent 0.35deg 7.3deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 13vmax, #000 34vmax);
+  mask-image: radial-gradient(circle, transparent 13vmax, #000 34vmax);
+  animation: tu-rays 0.24s steps(3) infinite;
+}
+.tu-cast .rays.r2 {
+  background: repeating-conic-gradient(from 3deg, var(--ray) 0deg 0.2deg, transparent 0.2deg 11.9deg);
+  animation-duration: 0.31s;
+  opacity: 0.8;
+}
+@keyframes tu-rays {
+  0% { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(4deg) scale(1.04); }
+}
+.tu-cast .grid {
+  inset: 0;
+  background-image: linear-gradient(var(--gridc) 1px, transparent 1px), linear-gradient(90deg, var(--gridc) 1px, transparent 1px);
+  background-size: 6vmin 6vmin;
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 35%, #000 85%);
+  mask-image: radial-gradient(ellipse at center, transparent 35%, #000 85%);
+}
+
+/* The title: one span per letter, an outline layer (i) under a gradient layer (b). */
+.tu-cast .title {
+  position: absolute;
+  left: 50%;
+  top: 1.2vh;
+  display: flex;
+  align-items: flex-end;
+  transform: translateX(-50%);
+  font-size: clamp(2.1rem, 9.5vmin, 6.8rem);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.tu-cast .ch {
+  position: relative;
+  display: inline-block;
+  animation: tu-ch-in 0.5s cubic-bezier(0.2, 1.8, 0.4, 1) calc(var(--i) * 0.045s) both, tu-ch-bob 1.2s ease-in-out calc(var(--i) * 0.08s + 0.55s) infinite;
+}
+.tu-cast .ch i,
+.tu-cast .ch b {
+  font-style: normal;
+  font-weight: inherit;
+}
+.tu-cast .ch i {
+  color: #22103a;
+  -webkit-text-stroke: 0.2em #22103a;
+  paint-order: stroke fill;
+  text-shadow: 0 0.1em 0 #22103a, 0 0.16em 0.1em rgba(0, 0, 0, 0.35);
+}
+.tu-cast .ch b {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: transparent;
+  background: linear-gradient(180deg, #ffffff 0%, var(--c) 42%, var(--c2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.tu-cast .gap {
+  display: inline-block;
+  width: 0.32em;
+}
+@keyframes tu-ch-in {
+  0% { opacity: 0; transform: translateY(-80%) scale(0.2) rotate(-25deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(var(--rot)); }
+}
+@keyframes tu-ch-bob {
+  0%, 100% { transform: translateY(0) rotate(var(--rot)); }
+  50% { transform: translateY(-7%) rotate(calc(var(--rot) * -1)); }
+}
+/* The weak one droops instead of bouncing. */
+.tu-cast.s-weak .title {
+  font-size: clamp(1.6rem, 6.5vmin, 4.4rem);
+  top: 4vh;
+}
+.tu-cast.s-weak .ch {
+  animation: tu-ch-in 0.4s ease-out calc(var(--i) * 0.03s) both, tu-ch-droop 0.9s ease-in calc(var(--i) * 0.04s + 0.5s) forwards;
+}
+@keyframes tu-ch-droop {
+  0% { transform: translateY(0) rotate(var(--rot)); }
+  100% { transform: translateY(18%) rotate(calc(var(--rot) * 3)); }
+}
+.tu-cast.s-gold .title {
+  font-size: clamp(1.8rem, 7.5vmin, 5.2rem);
+  top: 3vh;
+}
+/* The bonus line: "BONUS: x1.5 LUCK . x3 STREAK". */
+.tu-cast .sub {
+  position: absolute;
+  left: 50%;
+  top: calc(1.2vh + clamp(2.1rem, 9.5vmin, 6.8rem) * 1.12);
+  display: flex;
+  gap: 0.45em;
+  align-items: center;
+  max-width: 96vw;
+  transform: translateX(-50%);
+  font-size: clamp(0.95rem, 3.5vmin, 2.5rem);
+  white-space: nowrap;
+  animation: tu-sub-in 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) 0.35s both;
+}
+.tu-cast.s-weak .sub,
+.tu-cast.s-gold .sub {
+  top: calc(3vh + clamp(1.8rem, 7.5vmin, 5.2rem) * 1.12);
+  font-size: clamp(0.85rem, 2.6vmin, 1.7rem);
+}
+.tu-cast .sub .lbl,
+.tu-cast .sub .dot {
+  color: #fff;
+}
+.tu-cast .sub .dot {
+  font-size: 0.8em;
+}
+@keyframes tu-sub-in {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.4); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+/* Flat confetti cubes: a two-tone square (lit top-left, shaded bottom-right) bursting out. */
+.tu-cast .bits i {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: calc(clamp(10px, 2.6vmin, 30px) * var(--s));
+  height: calc(clamp(10px, 2.6vmin, 30px) * var(--s));
+  background: var(--c);
+  box-shadow: inset -0.28em -0.28em 0 rgba(0, 0, 0, 0.22), inset 0.2em 0.2em 0 rgba(255, 255, 255, 0.35);
+  font-size: calc(clamp(10px, 2.6vmin, 30px) * var(--s) * 0.5);
+  opacity: 0;
+  animation: tu-bit var(--d) cubic-bezier(0.15, 0.7, 0.4, 1) var(--dl) forwards;
+}
+@keyframes tu-bit {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+  35% { opacity: 1; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(calc(var(--r) * 0.5)); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) + 34vh)) scale(0.8) rotate(var(--r)); }
+}
+/* Phones: keep the banner clear of the platform toolbar (top-left). */
+@media (max-width: 700px) {
+  .tu-cast .title {
+    top: calc(var(--reserved-bar-b, 64px) + 1vh);
+    font-size: clamp(1.7rem, 10.5vw, 3.4rem);
+  }
+  .tu-cast .sub {
+    top: calc(var(--reserved-bar-b, 64px) + 1vh + clamp(1.7rem, 10.5vw, 3.4rem) * 1.12);
+    font-size: clamp(0.8rem, 3.6vw, 1.3rem);
+  }
+  .tu-cast.s-weak .title,
+  .tu-cast.s-gold .title {
+    top: calc(var(--reserved-bar-b, 64px) + 1vh);
+    font-size: clamp(1.4rem, 8vw, 2.6rem);
+  }
+  .tu-cast.s-weak .sub,
+  .tu-cast.s-gold .sub {
+    top: calc(var(--reserved-bar-b, 64px) + 1vh + clamp(1.4rem, 8vw, 2.6rem) * 1.12);
+    font-size: clamp(0.75rem, 3.2vw, 1.1rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tu-cast .rays {
+    animation: none;
+  }
+}
+/* Once the cast is locked in the meter shows its stop for a beat, then gets out of the way of
+   the windup pose (the hero shot frames you in the middle of the screen). */
+.tu.ph-windup .tu-meter {
+  opacity: 0;
+  transform: translate(-50%, -55%) scale(0.8);
+  transition: opacity 0.2s 0.18s, transform 0.3s 0.18s;
+}
+/* The cast banner already lists the streak: the badge under the meter steps aside. */
+.tu.ph-windup .tu-streak.on {
+  display: none;
+}
+/* Hand-off at the release: the cast banner flies up out of the way as the LUCK counter drops in
+   (the frame, rays and confetti play on). */
+.tu.ph-flight .tu-cast .title,
+.tu.ph-flight .tu-cast .sub {
+  opacity: 0;
+  translate: 0 -24vh;
+  transition: opacity 0.3s ease-in 0.32s, translate 0.36s ease-in 0.3s;
+}
+.tu.ph-flight .tu-luck {
+  transition-delay: 0.45s;
+}
+/* The hidden reveal card only slides down; on tall screens its big name still peeked in at the
+   bottom during the next cast. Hide it once it is out of the way. */
+.tu-reveal:not(.typing):not(.carded) {
+  visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.2, 1.3, 0.4, 1), visibility 0s 0.4s;
+}

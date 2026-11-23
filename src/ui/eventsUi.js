@@ -79,14 +79,14 @@ export function createEventsUi({ hud, sfx, boss, celebrate }) {
     rows.dataset.live = '1'
     live.appendChild(rows)
 
-    // The Hungry Giant.
+    // The River Giant.
     const giant = el('div', 'ev-sec ev-giant')
-    giant.innerHTML = `<h3 class="outline">\u{1F479} Hungry Giant</h3><p>She stomps up to the end of the lane at :${String(EVENTS.boss.at[0]).padStart(2, '0')} and :${String(EVENTS.boss.at[1]).padStart(2, '0')} every hour. Every throw anyone in your server makes feeds her. Fill her up in ${EVENTS.boss.length} minutes and everyone who threw gets cash (more for more throws) and ${EVENTS.boss.tickets} tickets!</p><div class="ev-bar"><i></i><span class="outline"></span></div>`
+    giant.innerHTML = `<h3 class="outline">\u{1F40B} River Giant</h3><p>A giant beast surfaces at the end of the river at :${String(EVENTS.boss.at[0]).padStart(2, '0')} and :${String(EVENTS.boss.at[1]).padStart(2, '0')} every hour. Every cast anyone in your server makes tires it out. Reel it in within ${EVENTS.boss.length} minutes and everyone who cast gets cash (more for more casts) and ${EVENTS.boss.tickets} tickets!</p><div class="ev-bar"><i></i><span class="outline"></span></div>`
 
     // The season: tickets, girls, shop.
     const sea = el('div', 'ev-sec ev-season')
     sea.style.setProperty('--sc', s.season.color)
-    sea.innerHTML = `<h3 class="outline">${s.season.icon} ${s.season.name}</h3><p>Season girls sometimes come out for your food in any area (1 in ${SEASON.chance}) and earn like the area you catch them in. Every throw gives ${SEASON.ticketsPerThrow} ticket, a season girl ${SEASON.ticketsPerGirl} more.</p><div class="ev-tickets outline"></div>`
+    sea.innerHTML = `<h3 class="outline">${s.season.icon} ${s.season.name}</h3><p>Season animals sometimes bite your hook in any area (1 in ${SEASON.chance}) and earn like the area you catch them in. Every cast gives ${SEASON.ticketsPerThrow} ticket, a season girl ${SEASON.ticketsPerGirl} more.</p><div class="ev-tickets outline"></div>`
     const girls = el('div', 'ev-girls')
     for (const g of s.girls) {
       const found = !!state.S.discovered[g.id]
@@ -113,7 +113,7 @@ export function createEventsUi({ hud, sfx, boss, celebrate }) {
   function buy(item) {
     if (!state.spendTickets(item.price)) {
       sfx.deny()
-      hud.toast(`You need ${item.price - (state.S.tickets | 0)} more tickets. Keep throwing!`, 'warn')
+      hud.toast(`You need ${item.price - (state.S.tickets | 0)} more tickets. Keep fishing!`, 'warn')
       return
     }
     if (item.potion) state.addPotion(item.potion, item.minutes)
@@ -142,13 +142,13 @@ export function createEventsUi({ hud, sfx, boss, celebrate }) {
         line(lh.on, '\u{1F340}', 'Luck Hour', `${EVENTS.luckHour.luck}x luck for the first ${EVENTS.luckHour.length} minutes of every hour`, lh.on ? `${left(lh.endsAt)} left` : `in ${left(lh.nextAt)}`),
         line(wk.on, '\u{1F4B0}', 'Weekend Boost', `${EVENTS.weekend.income}x income all Saturday and Sunday (UTC)`, wk.on ? `${span(wk.endsAt - now)} left` : `in ${span(wk.nextAt - now)}`),
         line(true, '\u{2B50}', `Featured: ${AREAS[f.area].name}`, `Area ${f.area + 1}: ${EVENTS.featured.luck}x luck and ${EVENTS.featured.variant}x GOLD / DIAMOND / RAINBOW odds`, `${left(f.endsAt)} left`),
-        line(bw.on, '\u{1F479}', 'Hungry Giant', 'Feed her together with your server', bw.on ? `${left(bw.endsAt)} left` : `in ${left(bw.nextAt)}`),
+        line(bw.on, '\u{1F40B}', 'River Giant', 'Reel it in together with your server', bw.on ? `${left(bw.endsAt)} left` : `in ${left(bw.nextAt)}`),
       ].join('')
     }
     const bar = body.querySelector('.ev-giant .ev-bar')
     if (bar && b) {
       bar.querySelector('i').style.width = `${Math.round(Math.min(1, b.need ? b.fill / b.need : 0) * 100)}%`
-      bar.querySelector('span').textContent = b.on ? (b.won ? 'FULL! Rewards sent!' : `${b.fill} / ${b.need} • your throws: ${b.mine}`) : `Next visit in ${left(b.nextAt)}`
+      bar.querySelector('span').textContent = b.on ? (b.won ? 'FULL! Rewards sent!' : `${b.fill} / ${b.need} • your casts: ${b.mine}`) : `Next visit in ${left(b.nextAt)}`
       bar.classList.toggle('on', b.on)
     }
     const t = body.querySelector('.ev-tickets')

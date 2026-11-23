@@ -3,7 +3,7 @@
 // canvas and keeps the data URL. Made lazily the first time a window needs one.
 import { ACESFilmicToneMapping, AmbientLight, Box3, DirectionalLight, MeshBasicMaterial, PerspectiveCamera, Scene, SRGBColorSpace, Vector3, WebGLRenderer } from 'three'
 import { portraitModel } from '../game/baddieModel.js'
-import { foodMesh } from '../game/foods.js'
+import { baitMesh, foodMesh } from '../game/foods.js'
 
 let renderer = null
 let scene = null
@@ -83,6 +83,17 @@ export function foodPortrait(id) {
   return cache.get(key)
 }
 
+export function baitPortrait(id) {
+  const key = `bt|${id}`
+  if (!cache.has(key)) {
+    if (setup()) renderer.setSize(256, 256, false)
+    const url = shoot(baitMesh(id), { yaw: 0 })
+    renderer?.setSize(192, 192, false)
+    cache.set(key, url)
+  }
+  return cache.get(key)
+}
+
 // --- Index portraits -----------------------------------------------------------------------
 // A girl's bust (head and shoulders, framed on her head so wings and staffs never shrink it)
 // in colour, or as a flat black silhouette for the girls you have not found yet. Drawn at
@@ -94,14 +105,13 @@ function shootBust(id, silhouette) {
   if (!setup()) return ''
   const b = portraitModel(id, 0)
   const obj = b.group
-  obj.rotation.y = 0.32
+  obj.rotation.y = 0.55 // three-quarters: animals read best side-on
   scene.add(obj)
   obj.updateMatrixWorld(true)
-  headBox.setFromObject(b.head.children[0])
+  headBox.setFromObject(b.root) // the whole animal (not a bust: they are mostly head and body)
   headBox.getCenter(centre)
   headBox.getSize(size)
-  centre.y -= size.y * 0.22
-  const r = Math.max(size.x, size.y) * 0.95
+  const r = Math.max(size.x, size.y, size.z * 0.8) * 0.62
   const dist = r / Math.tan((camera.fov * Math.PI) / 360)
   camera.position.set(centre.x + dist * 0.08, centre.y + r * 0.12, centre.z + dist)
   camera.lookAt(centre)

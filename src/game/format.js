@@ -15,7 +15,8 @@ export function fmt(n, digits = 2) {
     u++
   }
   const s = n >= 100 ? n.toFixed(Math.max(0, digits - 2)) : n >= 10 ? n.toFixed(Math.max(0, digits - 1)) : n.toFixed(digits)
-  return (neg ? '-' : '') + s.replace(/\.?0+$/, '') + UNITS[u]
+  // Only trim zeros after a decimal point ("1.50" -> "1.5"); "100" must stay "100".
+  return (neg ? '-' : '') + (s.includes('.') ? s.replace(/\.?0+$/, '') : s) + UNITS[u]
 }
 
 export const money = (n) => `$${fmt(n)}`

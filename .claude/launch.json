@@ -2,6 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "fish",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set VITE_DEV_MODE=true&& npx vite --port 5261 --strictPort --mode development"
+      ],
+      "port": 5261
+    },
+    {
       "name": "dev",
       "runtimeExecutable": "npx",
       "runtimeArgs": [

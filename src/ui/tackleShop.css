@@ -1,0 +1,644 @@
+/* Tackle windows (ui/tackleShop.js): "Rods & Bait" (purple studded title bar, RODS / BAIT tabs, one
+   row of tall rarity cards) and the "Trail Shop" (a grid of trail cards with live previews).
+   Card text scales with the card (container query units), so it reads the same on a phone and a
+   monitor. Money only: there is no premium currency anywhere. */
+.tk-win {
+  --ink: #15110d;
+  --stud: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='2.5' y='2.5' width='11' height='11' rx='2' fill='rgba(255,255,255,0.07)' stroke='rgba(0,0,0,0.13)' stroke-width='1.1'/%3E%3C/svg%3E");
+  width: min(94vw, 1100px);
+  max-height: min(94dvh, 780px);
+  border: 0.28em solid var(--ink);
+  border-radius: 0.4em;
+  background: var(--stud) 0 0 / 1.1em 1.1em, linear-gradient(#3b3f4a, #2a2d36);
+  box-shadow: 0 0.45em 0 rgba(0, 0, 0, 0.35), 0 1.4em 3.4em rgba(0, 0, 0, 0.4);
+}
+.tk-win .win-head {
+  gap: 0.6em;
+  padding: 0.5em 0.6em 0.5em 1.1em;
+  background:
+    var(--stud) 0 0 / 1.1em 1.1em,
+    linear-gradient(100deg, transparent 52%, rgba(255, 255, 255, 0.13) 52% 60%, transparent 60%),
+    linear-gradient(#ee4bff 0%, #d83cf5 48%, #c22ee0 52%, #b024cf 100%);
+  border-bottom: 0.26em solid var(--ink);
+  box-shadow: inset 0 0.2em 0 rgba(255, 255, 255, 0.3);
+}
+.tk-win .win-head h2 {
+  flex: 1;
+  font-size: clamp(1.8em, 3.4em, 8vw);
+  line-height: 1.05;
+  color: #fff;
+  -webkit-text-stroke: 0.12em var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 0.07em 0 rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+.tk-win .win-head .sub {
+  display: none;
+}
+.tk-win .win-x {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 3.5em;
+  height: 3.5em;
+  flex: none;
+  border-radius: 0.28em;
+  border: 0.22em solid var(--ink);
+  background: linear-gradient(#ff5c5c 0 48%, #e52c2c 52% 100%);
+  box-shadow: inset 0 0.18em 0 rgba(255, 255, 255, 0.4), inset 0 -0.18em 0 rgba(0, 0, 0, 0.2);
+}
+.tk-win .win-x svg {
+  display: none;
+}
+.tk-win .win-x::after {
+  content: 'X';
+  font-size: 2.3em;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.13em var(--ink);
+}
+.tk-win .win-x:active {
+  transform: scale(0.92);
+}
+.tk-win .win-body {
+  position: relative;
+  overflow: hidden;
+  padding: 0.75em 0.75em 0.45em;
+  touch-action: pan-x;
+}
+
+/* --- Tabs --- */
+.tk-tabs {
+  display: flex;
+  gap: 0.5em;
+  flex: none;
+}
+.tk-tab {
+  padding: 0.3em 0.9em;
+  border: 0.2em solid var(--ink);
+  border-radius: 0.25em;
+  font-size: clamp(1em, 1.9em, 4.4vw);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.14em var(--ink);
+  text-shadow: 0 0.07em 0 rgba(0, 0, 0, 0.35);
+  background: linear-gradient(#b9bdc7 0 48%, #8a8f9b 52% 100%);
+  box-shadow: inset 0 0.16em 0 rgba(255, 255, 255, 0.45), inset 0 -0.16em 0 rgba(0, 0, 0, 0.18), 0 0.14em 0 rgba(0, 0, 0, 0.35);
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.tk-tab.on {
+  background: linear-gradient(#7dff3a 0 48%, #3fd414 52% 100%);
+}
+
+/* --- Row of cards --- */
+.tk-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  min-height: 0;
+}
+.tk-track {
+  --gap: 0.85em;
+  display: flex;
+  gap: var(--gap);
+  height: clamp(300px, 58dvh, 560px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  padding: 0.15em 0.05em 0.45em;
+  cursor: grab;
+}
+.tk-track::-webkit-scrollbar {
+  display: none;
+}
+.tk-track.dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+}
+.tk-track.dragging .tk-card {
+  pointer-events: none;
+}
+.tk-scroll {
+  position: relative;
+  height: 0.42em;
+  margin: 0 auto 0.1em;
+  width: 70%;
+}
+.tk-scroll i {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 1em;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.3);
+  transition: width 0.2s;
+}
+
+/* --- Card --- */
+.tk-card {
+  --bg: linear-gradient(#e9ecf0, #a7adb8);
+  --glow: #ffffff;
+  position: relative;
+  flex: 0 0 calc((100% - 2 * var(--gap)) / 3.12);
+  scroll-snap-align: start;
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  border: 0.22em solid var(--ink);
+  border-radius: 0.35em;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 0.2em rgba(255, 255, 255, 0.22), 0 0.3em 0 rgba(0, 0, 0, 0.3);
+  animation: tkIn 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: var(--d);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tk-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--stud) 0 0 / 7.5cqw 7.5cqw;
+  pointer-events: none;
+}
+@keyframes tkIn {
+  from { opacity: 0; transform: translateY(1.4em) scale(0.86); }
+  to { opacity: 1; transform: none; }
+}
+/* Rarity colours (the reference: grey, green, orange, pink, teal, gold sunburst) */
+.r-common { --bg: linear-gradient(#e9ecf0, #a7adb8); }
+.r-uncommon { --bg: linear-gradient(#a6f27d, #3f9d2e); }
+.r-rare { --bg: linear-gradient(#80c8ff, #2a6fc4); }
+.r-epic { --bg: linear-gradient(#e29bff, #7a2cc4); }
+.r-legendary { --bg: linear-gradient(#ffcf7a, #e48a1a); }
+.r-mythic { --bg: linear-gradient(#ff7aa8, #c2204c); }
+.r-celestial { --bg: linear-gradient(#8af2dc, #1a8e8e); }
+.r-cosmic { --bg: linear-gradient(#a98dff, #3a1a9c); }
+.r-divine { --bg: linear-gradient(#8ff0e6, #22a6b6); }
+.r-secret { --bg: radial-gradient(circle at 50% 42%, #fff1b0, #e0b24a 55%, #8a6420); }
+.r-exotic { --bg: linear-gradient(#fff08a, #e09a10); }
+.r-special { --bg: linear-gradient(#c79bff, #5a2cb0); }
+.r-secret::after,
+.r-exotic::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 255, 255, 0.2) 0 8deg, transparent 8deg 24deg);
+  animation: tkSpin 18s linear infinite;
+  pointer-events: none;
+}
+@keyframes tkSpin { to { transform: rotate(360deg); } }
+.tk-card.equipped {
+  box-shadow: inset 0 0 0 0.22em #ffe14a, 0 0 1.4em color-mix(in srgb, var(--glow) 60%, transparent), 0 0.3em 0 rgba(0, 0, 0, 0.3);
+}
+.tk-card.pop { animation: tkPop 0.4s cubic-bezier(0.2, 1.8, 0.4, 1); }
+.tk-card.nudge { animation: tkNudge 0.25s; }
+.tk-card.bought { animation: tkBought 0.7s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes tkPop { 0% { transform: scale(0.94); } 60% { transform: scale(1.05); } 100% { transform: none; } }
+@keyframes tkNudge { 0%, 100% { transform: none; } 30% { transform: translateX(-0.25em); } 70% { transform: translateX(0.25em); } }
+@keyframes tkBought { 0% { transform: scale(0.9); filter: brightness(2); } 55% { transform: scale(1.09) rotate(-1.5deg); } 100% { transform: none; filter: none; } }
+.tk-fx { position: absolute; inset: 0; pointer-events: none; }
+.tk-name,
+.tk-sub {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.05;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.14em var(--ink);
+  text-shadow: 0 0.07em 0 rgba(0, 0, 0, 0.35);
+}
+.tk-name {
+  margin-top: 4.5cqh;
+  font-size: min(11.5cqw, 7.4cqh, calc(170cqw / var(--len)));
+}
+.tk-sub {
+  margin-top: 0.6cqh;
+  font-size: min(6.2cqw, 3.9cqh);
+  -webkit-text-stroke: 0.17em var(--ink);
+}
+.tk-odds {
+  position: absolute;
+  z-index: 3;
+  top: 14cqh;
+  right: 4cqw;
+  padding: 0.25em 0.9em;
+  border: 0.14em solid var(--ink);
+  border-radius: 1em;
+  font-size: min(5.2cqw, 3.4cqh);
+  font-weight: 700;
+  color: #fff;
+  background: rgba(20, 24, 38, 0.92);
+  touch-action: manipulation;
+  min-height: 30px;
+}
+.tk-odds:active { transform: scale(0.94); }
+
+.tk-art {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tk-halo {
+  position: absolute;
+  width: 78cqw;
+  aspect-ratio: 1;
+  max-height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 70%, transparent), transparent);
+  opacity: 0.4;
+}
+.tk-rays {
+  position: absolute;
+  inset: -20%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow) 38%, transparent) 0 6deg, transparent 6deg 20deg);
+  -webkit-mask: radial-gradient(closest-side, #000 20%, transparent 85%);
+  mask: radial-gradient(closest-side, #000 20%, transparent 85%);
+  animation: tkSpin 24s linear infinite;
+  opacity: 0.7;
+}
+.tk-art img {
+  position: relative;
+  width: 84cqw;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0.5em 0.35em rgba(0, 0, 0, 0.35));
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.25s, transform 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+  pointer-events: none;
+}
+.tk-art img.ready {
+  opacity: 1;
+  transform: none;
+  animation: tkBob 3.4s ease-in-out infinite;
+  animation-delay: var(--bob);
+}
+.k-bait .tk-art img { width: 72cqw; }
+@keyframes tkBob {
+  0%, 100% { transform: translateY(1.5cqh) rotate(-3deg); }
+  50% { transform: translateY(-1.8cqh) rotate(3deg); }
+}
+.tk-card.locked .tk-art img { filter: grayscale(0.55) brightness(0.8) drop-shadow(0 0.5em 0.35em rgba(0, 0, 0, 0.35)); }
+.tk-badge {
+  position: absolute;
+  right: 6cqw;
+  bottom: 3cqh;
+  padding: 0.1em 0.7em;
+  border-radius: 1em;
+  background: rgba(14, 14, 24, 0.9);
+  color: #fff;
+  font-style: normal;
+  font-weight: 700;
+  font-size: min(8cqw, 5.2cqh);
+}
+.tk-tw {
+  position: absolute;
+  width: 0.7em;
+  height: 0.7em;
+  background: #fff;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: tkTw 2s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes tkTw { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0); } 50% { opacity: 1; transform: scale(1.1) rotate(90deg); } }
+
+.tk-note {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-size: min(5.4cqw, 3.5cqh);
+  font-weight: 700;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.14em var(--ink);
+  text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  max-width: 96cqw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk-luck,
+.tk-guar {
+  position: relative;
+  z-index: 1;
+  width: 88cqw;
+  margin-top: 0.8cqh;
+  padding: 0.5cqh 0;
+  border: 0.18em solid var(--ink);
+  border-radius: 0.28em;
+  text-align: center;
+  font-weight: 700;
+  font-size: min(11cqw, 7cqh);
+  line-height: 1.1;
+  color: #fff;
+  background: rgba(60, 64, 78, 0.92);
+  paint-order: stroke fill;
+}
+.tk-luck b {
+  color: #5dff2c;
+  -webkit-text-stroke: 0.14em var(--ink);
+  paint-order: stroke fill;
+}
+.tk-luck { -webkit-text-stroke: 0.14em var(--ink); }
+.tk-guar {
+  font-size: min(7.4cqw, 4.7cqh);
+  color: #ffd84a;
+  background: rgba(24, 16, 12, 0.94);
+  -webkit-text-stroke: 0.12em var(--ink);
+  padding: 0.8cqh 1cqw;
+}
+
+/* --- Buttons --- */
+.tk-btn {
+  position: relative;
+  z-index: 1;
+  width: 88cqw;
+  height: 14cqh;
+  min-height: 40px;
+  margin: 1cqh 0 3cqh;
+  border: 0.2em solid var(--ink);
+  border-radius: 0.3em;
+  overflow: hidden;
+  color: #fff;
+  font-size: min(12cqw, 8.4cqh);
+  font-weight: 700;
+  background:
+    linear-gradient(115deg, transparent 0 66%, rgba(255, 255, 255, 0.4) 66% 71%, transparent 71% 75%, rgba(255, 255, 255, 0.4) 75% 80%, transparent 80%),
+    linear-gradient(#9ea3ad 0 48%, #6e7380 52% 100%);
+  box-shadow: inset 0 -0.2em 0 rgba(0, 0, 0, 0.18), 0 0.16em 0 rgba(0, 0, 0, 0.35);
+  touch-action: manipulation;
+  transition: transform 0.08s, filter 0.15s;
+}
+.k-bait .tk-btn { margin-bottom: 0.6cqh; height: 12.5cqh; }
+.tk-btn span,
+.tk-btn2 {
+  position: relative;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.15em var(--ink);
+  text-shadow: 0 0.07em 0 rgba(0, 0, 0, 0.35);
+}
+.tk-btn.go {
+  background:
+    linear-gradient(115deg, transparent 0 66%, rgba(255, 255, 255, 0.42) 66% 71%, transparent 71% 75%, rgba(255, 255, 255, 0.42) 75% 80%, transparent 80%),
+    linear-gradient(#a6f55e 0 48%, #58c934 52% 100%);
+}
+.tk-btn.eq {
+  background:
+    linear-gradient(115deg, transparent 0 66%, rgba(255, 255, 255, 0.5) 66% 71%, transparent 71% 75%, rgba(255, 255, 255, 0.5) 75% 80%, transparent 80%),
+    linear-gradient(#ffd84a 0 48%, #ff9d1a 52% 100%);
+}
+.tk-card.owned:not(.equipped) .k-rod .tk-btn.go,
+.tk-card.k-rod.owned:not(.equipped) .tk-btn.go {
+  background:
+    linear-gradient(115deg, transparent 0 66%, rgba(255, 255, 255, 0.45) 66% 71%, transparent 71% 75%, rgba(255, 255, 255, 0.45) 75% 80%, transparent 80%),
+    linear-gradient(#58b8ff 0 48%, #2a78e8 52% 100%);
+}
+.tk-card.k-bait.jackpot .tk-btn.go,
+.tk-card.k-bait.jackpot .tk-btn {
+  background:
+    linear-gradient(115deg, transparent 0 66%, rgba(255, 255, 255, 0.3) 66% 71%, transparent 71% 75%, rgba(255, 255, 255, 0.3) 75% 80%, transparent 80%),
+    linear-gradient(#e24dff 0 48%, #a01cd8 52% 100%);
+}
+.tk-btn.lock { filter: saturate(0.5) brightness(0.85); }
+.tk-lockico {
+  display: inline-block;
+  width: 0.62em;
+  height: 0.5em;
+  margin-right: 0.3em;
+  border-radius: 0.1em;
+  background: #ffb02a;
+  vertical-align: -0.02em;
+  position: relative;
+}
+.tk-lockico::before {
+  content: '';
+  position: absolute;
+  left: 18%;
+  top: -0.42em;
+  width: 64%;
+  height: 0.5em;
+  border: 0.12em solid #d8dce6;
+  border-bottom: 0;
+  border-radius: 0.5em 0.5em 0 0;
+}
+.tk-btn.shake,
+.tk-btn.shake { animation: tkShake 0.35s; }
+@keyframes tkShake { 0%, 100% { transform: none; } 20% { transform: translateX(-0.3em); } 40% { transform: translateX(0.3em); } 60% { transform: translateX(-0.2em); } 80% { transform: translateX(0.2em); } }
+.tk-btn:active:not(:disabled) { transform: scale(0.96); }
+.tk-btn2 {
+  position: relative;
+  z-index: 1;
+  width: 70cqw;
+  margin: 0 0 2.4cqh;
+  padding: 0.1em 0;
+  border: 0.16em solid var(--ink);
+  border-radius: 0.28em;
+  color: #fff;
+  font-weight: 700;
+  font-size: min(8.4cqw, 5.4cqh);
+  min-height: 32px;
+  background: linear-gradient(#58b8ff 0 48%, #2a78e8 52% 100%);
+  touch-action: manipulation;
+}
+.tk-btn2.eq { background: linear-gradient(#ffd84a 0 48%, #ff9d1a 52% 100%); }
+
+/* --- Confetti burst on purchase --- */
+.tk-burst { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.tk-burst i {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 3.4cqw;
+  height: 3.4cqw;
+  border-radius: 20%;
+  animation: tkBurst 0.95s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+@keyframes tkBurst { to { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(0.2); opacity: 0; } }
+
+/* --- ODDS popup --- */
+.tk-pop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 8, 16, 0.55);
+  animation: tkIn 0.2s both;
+}
+.tk-pop-box {
+  width: min(92%, 30em);
+  padding: 0.8em 1em;
+  border: 0.24em solid var(--ink);
+  border-radius: 0.5em;
+  background: linear-gradient(#3a3f55, #272b3d);
+  color: #fff;
+  box-shadow: 0 0.5em 0 rgba(0, 0, 0, 0.4);
+}
+.tk-pop-head { display: flex; align-items: center; justify-content: space-between; font-size: 1.5em; margin-bottom: 0.4em; }
+.tk-pop-x {
+  width: 1.8em;
+  height: 1.8em;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.3em;
+  background: #e5342c;
+  color: #fff;
+  font-weight: 700;
+  min-height: 36px;
+  min-width: 36px;
+}
+.tk-pop-area { display: flex; align-items: center; justify-content: center; gap: 0.7em; margin-bottom: 0.5em; font-weight: 700; }
+.tk-nav {
+  width: 2em;
+  height: 2em;
+  min-width: 40px;
+  min-height: 40px;
+  border: 0.14em solid var(--ink);
+  border-radius: 0.3em;
+  background: linear-gradient(#58b8ff, #2a78e8);
+  color: #fff;
+  font-weight: 700;
+}
+.tk-pop-rows { display: flex; flex-direction: column; gap: 0.3em; }
+.tk-pop-row { display: grid; grid-template-columns: 6.2em 1fr 5.4em; align-items: center; gap: 0.5em; font-weight: 700; font-size: 0.95em; }
+.tk-pop-row span { color: var(--c); -webkit-text-stroke: 0.1em var(--ink); paint-order: stroke fill; }
+.tk-pop-row i { display: block; height: 0.9em; border: 0.1em solid var(--ink); border-radius: 1em; background: rgba(0, 0, 0, 0.4); overflow: hidden; }
+.tk-pop-row u { display: block; height: 100%; background: var(--c); border-radius: 1em; }
+.tk-pop-row em { font-style: normal; text-align: right; }
+.tk-pop small { display: block; margin-top: 0.6em; opacity: 0.8; text-align: center; }
+
+/* --- Trail Shop --- */
+.tk-trail .win-body { touch-action: pan-y; overflow-y: auto; }
+.tk-ticon { display: flex; flex-direction: column; gap: 0.2em; width: 3em; transform: rotate(-18deg); flex: none; }
+.tk-ticon i { height: 0.7em; border: 0.12em solid var(--ink); border-radius: 0.2em; }
+.tk-ticon i:nth-child(1) { background: #ff5a8a; margin-left: 0.5em; }
+.tk-ticon i:nth-child(2) { background: #ffd84a; }
+.tk-ticon i:nth-child(3) { background: #6ac8ff; margin-left: 0.8em; }
+.tr-intro { text-align: center; margin: 0.2em 0 0.7em; display: flex; flex-direction: column; font-weight: 700; }
+.tr-intro b {
+  font-size: clamp(1.1em, 2.2em, 4.6vw);
+  color: #ffd84a;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.15em var(--ink);
+  text-shadow: 0 0.07em 0 rgba(0, 0, 0, 0.4);
+}
+.tr-intro small {
+  font-size: clamp(0.9em, 1.7em, 3.8vw);
+  color: #ff9a2a;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.15em var(--ink);
+}
+.tr-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6em;
+  max-height: clamp(260px, 52dvh, 520px);
+  overflow-y: auto;
+  padding: 0.2em 0.2em 0.6em;
+  scrollbar-width: thin;
+}
+@media (max-width: 760px) { .tr-grid { grid-template-columns: repeat(2, 1fr); } }
+.tr-card {
+  --glow: #fff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  padding: 0.3em;
+  container-type: inline-size;
+  border: 0.2em solid color-mix(in srgb, var(--glow) 80%, #3a2a5a);
+  border-radius: 0.3em;
+  background: var(--stud) 0 0 / 1.1em 1.1em, linear-gradient(#3d2f66, #2b2147);
+  box-shadow: 0 0.25em 0 rgba(0, 0, 0, 0.35);
+  animation: tkIn 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: var(--d);
+}
+.tr-card.r-common, .tr-card.r-uncommon { border-color: #5a4a80; }
+.tr-card.r-legendary { border-color: #ffa21f; box-shadow: 0 0 0.8em rgba(255, 162, 31, 0.5), 0 0.25em 0 rgba(0, 0, 0, 0.35); }
+.tr-card.r-celestial, .tr-card.r-cosmic, .tr-card.r-epic, .tr-card.r-mythic { box-shadow: 0 0 0.8em color-mix(in srgb, var(--glow) 50%, transparent), 0 0.25em 0 rgba(0, 0, 0, 0.35); }
+.tr-card.r-exotic, .tr-card.r-secret, .tr-card.r-divine {
+  border-image: linear-gradient(120deg, #ff5a5a, #ffd84a, #5aff8a, #5ac8ff, #c07dff, #ff5a5a) 1;
+}
+.tr-card.equipped { outline: 0.2em solid #ffe14a; }
+.tr-card.trying { outline: 0.2em dashed #7ae8ff; }
+.tr-name {
+  text-align: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: min(9.6cqw, calc(190cqw / var(--len)));
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  -webkit-text-stroke: 0.1em var(--ink);
+  paint-order: stroke fill;
+  white-space: nowrap;
+}
+.tr-view { border: 0.12em solid #0e0b18; border-radius: 0.2em; overflow: hidden; background: #0b0916; line-height: 0; }
+.tr-view canvas { width: 100%; height: auto; display: block; }
+.tr-card .tk-btn { width: 100%; height: auto; min-height: 44px; margin: 0; padding: 0.15em 0; font-size: min(11cqw, 1.7em); }
+.tr-try {
+  width: 100%;
+  min-height: 44px;
+  border: 0.2em solid var(--ink);
+  border-radius: 0.3em;
+  color: #fff;
+  font-weight: 700;
+  font-size: min(11cqw, 1.7em);
+  background: linear-gradient(#58b8ff 0 48%, #2a78e8 52% 100%);
+  box-shadow: inset 0 -0.2em 0 rgba(0, 0, 0, 0.18), 0 0.16em 0 rgba(0, 0, 0, 0.35);
+  touch-action: manipulation;
+}
+.tr-try span { paint-order: stroke fill; -webkit-text-stroke: 0.15em var(--ink); }
+.tr-card.trying .tr-try { background: linear-gradient(#ffd84a 0 48%, #ff9d1a 52% 100%); }
+.tr-try:active { transform: scale(0.96); }
+
+/* Phones: two cards across, bigger touch targets */
+@media (max-width: 760px) {
+  .tk-card { flex-basis: calc((100% - var(--gap)) / 1.5); }
+  .tk-win .win-head h2 { font-size: clamp(1.3em, 2em, 7vw); }
+}
+
+
+/* --- Shop window: fishing gear tiles + section headings --- */
+.gear-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; margin-bottom: 0.6em; }
+.gear-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  padding: 0.6em 0.3em;
+  min-height: 44px;
+  border: 0.2em solid #0d1220;
+  border-radius: 0.6em;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(#5a63a0, #343b6c);
+  box-shadow: inset 0 0.15em 0 rgba(255, 255, 255, 0.25), 0 0.2em 0 rgba(0, 0, 0, 0.35);
+  touch-action: manipulation;
+}
+.gear-tile.rods { background: linear-gradient(#d88af0, #8a2cc4); }
+.gear-tile.baits { background: linear-gradient(#59e8d4, #148e84); }
+.gear-tile.trails { background: linear-gradient(#ffb06a, #d8501a); }
+.gear-tile .gt-ico { font-size: 2.4em; line-height: 1; filter: drop-shadow(0 0.1em 0 rgba(0, 0, 0, 0.3)); }
+.gear-tile b { font-size: 1.25em; }
+.gear-tile small { font-size: 0.8em; opacity: 0.92; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gear-tile:active { transform: scale(0.97); }
+.shop-h { margin: 0.7em 0 0.35em; font-size: 1.3em; color: #fff; }

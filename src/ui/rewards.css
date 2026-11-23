@@ -156,7 +156,7 @@
   flex-wrap: wrap;
   gap: 0.3em;
   max-width: min(46vw, 34em);
-  margin-bottom: 0.3em;
+  margin-bottom: 0.4em;
   font-size: calc(var(--u) * 1.15);
   pointer-events: auto;
 }

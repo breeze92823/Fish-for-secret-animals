@@ -1825,3 +1825,93 @@ button.card:active {
     font-size: 13px;
   }
 }
+
+/* =====================================================================================
+   Fishing look (matches the reference art): the left menu is icons with an outlined label
+   under each (no slabs), the quest is big white outlined text, Power reads "107 Power".
+   Placed last so it wins over the older rules above (phone tile sizes still come from the
+   .touch-ui rules, which are more specific).
+   ===================================================================================== */
+#hud .hud-btn {
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  width: calc(var(--u) * 6.4);
+  height: auto;
+  min-height: 44px;
+  padding: 0.1em 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: calc(var(--u) * 1.5);
+  line-height: 1;
+}
+#hud .hud-btn svg {
+  width: 2.7em;
+  height: 2.7em;
+  filter: drop-shadow(0 0.1em 0 rgba(0, 0, 0, 0.45));
+}
+#hud .hud-btn .gift-ico {
+  width: auto;
+  font-size: 2.35em;
+  filter: drop-shadow(0 0.08em 0 rgba(0, 0, 0, 0.45));
+}
+#hud .hud-btn span.outline {
+  flex: none;
+  margin-top: -0.15em;
+  white-space: nowrap;
+}
+#hud .hud-btn .badge {
+  right: 0.3em;
+  top: 0;
+}
+#hud .hud-btn:hover svg,
+#hud .hud-btn:hover .gift-ico {
+  transform: scale(1.08) rotate(-4deg);
+}
+/* Centred on the left edge, clear of the stats in the bottom-left corner. */
+body:not(.touch-ui) #hud .hud-left {
+  top: max(var(--reserved-top), 50%);
+  transform: translateY(-55%);
+  gap: calc(var(--u) * 0.5);
+}
+/* Not enough height for one column of five: two columns. */
+@media (max-height: 760px) {
+  body:not(.touch-ui) #hud .hud-left {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    column-gap: calc(var(--u) * 0.4);
+    transform: translateY(-62%);
+  }
+}
+
+/* Quest: big white outlined words over the scene, the reward small and gold under them. */
+#hud .hud-quest {
+  color: #fff;
+  background: none;
+  font-size: calc(var(--u) * 2.6);
+}
+#hud .hud-quest span {
+  -webkit-text-stroke: 0.16em #0d1220;
+  text-shadow: 0 0.09em 0 rgba(0, 0, 0, 0.4);
+}
+#hud .hud-quest small {
+  color: #ffe14a;
+  -webkit-text-stroke: 0.25em #0d1220;
+  paint-order: stroke fill;
+  opacity: 1;
+}
+
+/* Power: white, with its label. */
+#hud .hud-strength {
+  color: #fff;
+}
+#hud .hud-strength .lbl {
+  margin-left: 0.25em;
+}
+@media (max-height: 460px), (orientation: portrait) and (max-width: 640px) {
+  #hud .hud-strength .lbl {
+    font-size: 0.8em;
+  }
+}

@@ -1,5 +1,5 @@
 import { ACESFilmicToneMapping, CircleGeometry, Clock, DoubleSide, Group, Mesh, MeshBasicMaterial, RingGeometry, PCFSoftShadowMap, PerspectiveCamera, Quaternion, Scene, SRGBColorSpace, Vector3, WebGLRenderer } from 'three'
-import { BADDIES, BOARD_BOTS, CAMERA, LEADERBOARDS, REMOTE, ECONOMY, FUSE, graphicsPreset, HUB, PENS, PHYSICS, POI, RARITIES, RENDER, SIZES, SPAWN, AUDIO, THROW_MODE, VARIANTS, placeUnit } from './config.js'
+import { BADDIES, BOARD_BOTS, FOG, CAMERA, LEADERBOARDS, REMOTE, ECONOMY, FUSE, graphicsPreset, HUB, PENS, PHYSICS, POI, RARITIES, RENDER, SIZES, SPAWN, AUDIO, THROW_MODE, VARIANTS, placeUnit } from './config.js'
 import * as THREE from 'three'
 import * as bloxity from './bloxity.js'
 import { createRemotePlayers } from './remote.js'
@@ -20,7 +20,7 @@ import { buildDefaultCharacter, loadBaseCharacter } from './avatar/character.js'
 import { applyProportions, attachEquippedAccessories } from './avatar/loader.js'
 import { disposeAnimator, makeAnimator } from './avatar/animator.js'
 import { buildHub } from './hub/world.js'
-import { buildBoards, buildChest, buildFoodShop, buildFriendWall, buildFuse, buildLaneDeco, buildSell, buildThrowBand } from './hub/props.js'
+import { buildBaitShop, buildBoards, buildChest, buildFoodShop, buildFriendWall, buildFuse, buildLaneDeco, buildSell, buildThrowBand, buildTrailShop } from './hub/props.js'
 import { buildPens, setIncomeFn } from './game/pens.js'
 import { createThrower } from './game/throw.js'
 import { createBoss } from './game/boss.js'
@@ -31,7 +31,8 @@ import { fmt, clock, money } from './game/format.js'
 import * as state from './game/state.js'
 import { createFx } from './fx/particles.js'
 import { installAudio, isMuted, setDucked, setVolume, sfx, toggleMuted, updateAudio } from './audio/index.js'
-import { warmFoodPortraits } from './ui/foodShop.js'
+import { warmTackle } from './ui/tackleShop.js'
+import { emitTrail, trailBurst } from './fx/trails.js'
 import { createHud } from './ui/hud.js'
 import { baddiePortrait } from './ui/snapshot.js'
 import { createThrowUi } from './ui/throwUi.js'
@@ -139,10 +140,12 @@ net.setJoinExtras(() => ({ avatar: lookJson() }))
 const session = await net.connect()
 const online = !!session
 const myIndex = online ? session.base : PENS.playerIndex
-// One unit per player: your base + your Food Shop + your Training Place, side by side. Other
-// players' shops and training stations are not built, so you only ever see your own.
+// One unit per player: your base + your Training Place. Other players' training stations are not
+// built. The Rod / Bait / Trail shops are shared: one market row by the leaderboards.
 placeUnit(myIndex)
 buildFoodShop(world)
+buildBaitShop(world)
+buildTrailShop(world)
 const trainStation = buildTrainingStation(world)
 setIncomeFn((e) => state.baddieIncome(e))
 const pens = buildPens(world, { mine: myIndex, online })
@@ -151,7 +154,39 @@ const localVec = new Vector3()
 const remote = online
   ? createRemotePlayers(scene, { fx, sfx, pens, localPos: () => localVec.set(player.renderPosition.x, player.renderPosition.y, player.renderPosition.z) })
   : null
-setSpawn(myPen.cx + SPAWN.x - PENS.xs[PENS.playerIndex], SPAWN.z) // in front of your own base
+// Your pen grows north (toward the river) with its capacity, `m` metres (PENS.grow): the north
+// fence, gate, sign, pad and Training Bench move out together and stop short of the shop row; the
+// spawn in front of the pen follows (never past that line). Other bases keep the starting size.
+const benchHome = { x: TRAINING.spot.x, z: TRAINING.spot.z } // the bench in front of an ungrown pen
+function setPenGrowth(m) {
+  myPen.layout(m)
+  trainStation.moveTo(benchHome.x, benchHome.z - m)
+  setSpawn(myPen.cx + SPAWN.x - PENS.xs[PENS.playerIndex], Math.max(PENS.grow.stopZ, SPAWN.z - m)) // in front of your own base
+}
+// An upgrade slides the fence out over ~0.7 s (rebuilt in a few steps), then dust puffs along it.
+let penGrowRun = 0
+function growPen() {
+  const to = PENS.grow.at(state.S.capacityLevel)
+  const from = myPen.grown
+  if (Math.abs(to - from) < 0.01) return
+  const run = ++penGrowRun
+  const t0 = performance.now()
+  let last = -1
+  const step = () => {
+    if (run !== penGrowRun) return // a newer upgrade took over
+    const u = Math.min(1, (performance.now() - t0) / 700)
+    if (u - last >= 0.12 || u === 1) {
+      last = u
+      setPenGrowth(from + (to - from) * (1 - (1 - u) ** 3))
+    }
+    if (u < 1) return requestAnimationFrame(step)
+    const z = myPen.front.z
+    for (let x = -PENS.halfW; x <= PENS.halfW; x += 2) fx.puff(new Vector3(myPen.cx + x, 0.4, z), '#eadbb8', 4, { size: 0.7, spread: 1.2, up: 0.8, life: 0.8, alpha: 0.7 })
+    fx.ring(new Vector3(myPen.cx, 0.3, myPen.cz), '#ffd93b', { r0: 1, r1: PENS.halfW + 2, life: 0.6 })
+  }
+  requestAnimationFrame(step)
+}
+setPenGrowth(0)
 createPlayerBody()
 syncYawToPlayer()
 
@@ -171,6 +206,7 @@ const saved = online ? await net.loadGame() : { ok: false, game: null }
 const away = state.hydrate(saved.game)
 state.setInvites(saved.invites ?? 0)
 state.setSaver((S) => net.saveGame({ ...S, income: Math.round(state.income()) })) // + the money/s the income board ranks
+if (state.S.capacityLevel > 0) setPenGrowth(PENS.grow.at(state.S.capacityLevel)) // the saved pen size
 for (const b of state.S.baddies) myPen.add(b)
 const baseWalk = PHYSICS.walkSpeed
 const baseSprint = PHYSICS.sprintSpeed
@@ -184,7 +220,7 @@ applySpeed()
 const chestTarget = new Vector3()
 const playerChest = () => chestTarget.set(player.renderPosition.x, player.renderPosition.y + 1.2, player.renderPosition.z)
 let fuseBusy = false
-warmFoodPortraits() // shop cards render their food portraits in idle time
+warmTackle() // shop cards render their rod / bait portraits in idle time
 const hud = createHud({
   sfx,
   onReservedAreas: bloxity.onReservedAreas,
@@ -228,7 +264,7 @@ const hud = createHud({
       const placed = state.equipBest()
       if (!placed.length) {
         sfx.deny()
-        hud.toast('Your pen is full! Upgrade it or sell a baddie.', 'warn')
+        hud.toast('Your pen is full! Upgrade it or sell an animal.', 'warn')
         return
       }
       for (const b of placed) {
@@ -236,7 +272,13 @@ const hud = createHud({
         fx.sparkle(rec.home.clone().setY(1.2), RARITIES[BY_ID[b.id].rarity].glow, 14, { speed: 4 })
       }
       sfx.arrive()
-      hud.toast(`${placed.length} baddie${placed.length > 1 ? 's' : ''} put to work! +$${fmt(placed.reduce((t, b) => t + state.baddieIncome(b), 0))}/s`, 'good')
+      hud.toast(`${placed.length} animal${placed.length > 1 ? 's' : ''} put to work! +$${fmt(placed.reduce((t, b) => t + state.baddieIncome(b), 0))}/s`, 'good')
+    },
+    // A trail bought / tried on: its particles puff out around you at once.
+    trailTry(def) {
+      const at = playerChest().clone().setY(player.renderPosition.y + 1.4)
+      trailBurst(fx, def, at, 26)
+      fx.ring(new Vector3(player.renderPosition.x, 0.07, player.renderPosition.z), def.parts[0].c[0], { r0: 0.5, r1: 5, life: 0.6 })
     },
     celebrate() {
       fx.confetti(playerChest().clone().setY(player.renderPosition.y + 2.5), 50)
@@ -297,7 +339,7 @@ if (online) {
     }
   })
 }
-if (away.cash > 0) setTimeout(() => hud.toast(`Welcome back! Your baddies earned ${money(away.cash)} while you were away`, 'good'), 1500)
+if (away.cash > 0) setTimeout(() => hud.toast(`Welcome back! Your animals earned ${money(away.cash)} while you were away`, 'good'), 1500)
 
 // --- State -> world -----------------------------------------------------------------
 let lastSignAffordable = null
@@ -336,6 +378,7 @@ state.on('baddie-removed', (b) => {
 })
 state.on('income', () => refreshIncome())
 state.on('capacity', () => {
+  growPen()
   refreshSign()
   hud.setCount()
 })
@@ -364,7 +407,7 @@ marker.renderOrder = 3
 scene.add(marker)
 let markerValid = false
 function inMyPen(x, z, margin = 1) {
-  return Math.abs(x - myPen.cx) < PENS.halfW - margin && Math.abs(z - myPen.cz) < PENS.halfD - margin
+  return Math.abs(x - myPen.cx) < PENS.halfW - margin && Math.abs(z - myPen.cz) < myPen.halfD - margin
 }
 function setCarry(idx) {
   carried?.b.dispose()
@@ -404,7 +447,7 @@ function placeCarried() {
   const entry = state.placeFromHotbar(idx)
   if (!entry) {
     sfx.deny()
-    hud.toast('Your pen is full! Upgrade it or sell a baddie.', 'warn')
+    hud.toast('Your pen is full! Upgrade it or sell an animal.', 'warn')
     return
   }
   myPen.add(entry, { drop: true, at })
@@ -485,7 +528,7 @@ thrower = createThrower(world, {
       hotbar.flyIn(def.id)
       hud.toast(`${def.name} is in your hotbar! Select it, then place it in your pen.`, def.rarity >= 3 ? 'rare' : 'good')
     },
-    target: () => myPen.front.clone().setY(PENS.floorHeight).add(new Vector3(0, 0, PENS.halfD)),
+    target: () => new Vector3(myPen.cx, PENS.floorHeight, myPen.cz),
     arrive(entry, def) {
       const rec = myPen.add(entry, { drop: true })
       const p = rec.b.group.position
@@ -575,7 +618,7 @@ function startFuse(entries) {
   runFuseMachine(BY_ID[entries[0].b.id], () => {
     const r = state.fuseEntries(entries)
     if (!r) {
-      hud.toast('Those baddies are gone: fuse cancelled.', 'warn')
+      hud.toast('Those animals are gone: fuse cancelled.', 'warn')
       return
     }
     fuseCelebrate(r.lucky)
@@ -964,9 +1007,11 @@ setTimeout(() => {
 // Walk into a ring: its window opens; walk out: it closes (if the ring opened it).
 const zones = [
   { id: 'foodShop', x: POI.foodShop.x, z: POI.foodShop.z, r: POI.foodShop.r },
+  { id: 'baitShop', x: POI.baitShop.x, z: POI.baitShop.z, r: POI.baitShop.r },
+  { id: 'trailShop', x: POI.trailShop.x, z: POI.trailShop.z, r: POI.trailShop.r },
   { id: 'sell', x: POI.sell.x, z: POI.sell.z + 0.6, r: POI.sell.r },
   { id: 'fuse', x: POI.fuse.x, z: POI.fuse.z + 0.8, r: POI.fuse.r },
-  { id: 'pen', x: myPen.signSpot.x, z: myPen.signSpot.z, r: 1.9 },
+  { id: 'pen', get x() { return myPen.signSpot.x }, get z() { return myPen.signSpot.z }, r: 1.9 }, // moves when the pen grows
 ]
 let inZone = null
 function updateZones() {
@@ -1000,6 +1045,22 @@ function updatePadAndChest(dt, t) {
       hud.toast(`Free reward: ${money(got)}!`, 'rare')
     }
   }
+}
+
+// The equipped trail drifts behind you in the hub ("a trail follows your rod everywhere you go").
+const trailAt = new Vector3()
+const trailDir = new Vector3()
+function hubTrail(dt, t) {
+  const tr = state.trail()
+  if (!tr || thrower.active) return
+  const vx = player.velocity.x
+  const vz = player.velocity.z
+  const sp = Math.hypot(vx, vz)
+  if (sp < 1.2) return
+  const p = player.renderPosition
+  trailAt.set(p.x, p.y + 0.9, p.z)
+  trailDir.set(vx / sp, 0, vz / sp).multiplyScalar(Math.min(1, sp / 8))
+  emitTrail(fx, tr, trailAt, trailDir, dt, t, 0.45)
 }
 
 // --- Ambient effects -------------------------------------------------------------------
@@ -1107,7 +1168,7 @@ renderer.setAnimationLoop(() => {
   interpolatePlayer()
 
   const p = player.renderPosition
-  playerGroup.position.set(p.x, p.y, p.z)
+  playerGroup.position.set(p.x, p.y + thrower.hop(), p.z)
   playerGroup.rotation.y = player.facing
   animator?.update(dt, {
     grounded: player.grounded,
@@ -1126,8 +1187,9 @@ renderer.setAnimationLoop(() => {
     q.setFromAxisAngle(armBinding.axisX, arm)
     armBinding.bone.quaternion.premultiply(q)
   }
-  if (armLBinding && carried && !emoting) {
-    q.setFromAxisAngle(armLBinding.axisX, -1.35)
+  const armL = thrower.armLAngle() ?? (carried ? -1.35 : null)
+  if (armLBinding && armL != null && !emoting) {
+    q.setFromAxisAngle(armLBinding.axisX, armL)
     armLBinding.bone.quaternion.premultiply(q)
   }
   updateCarry(dt, t)
@@ -1156,6 +1218,7 @@ renderer.setAnimationLoop(() => {
   updateZones()
   updatePadAndChest(dt, t)
   ambient(dt, t)
+  hubTrail(dt, t)
   body(dt)
   fuseMachine.update(dt, t)
   boards.update(dt, t)
@@ -1179,7 +1242,7 @@ renderer.setAnimationLoop(() => {
         ? `${touchUi ? 'Tap PLACE' : 'Click'} to place ${carried.b.def.name}`
         : `Walk into your pen to place ${carried.b.def.name}`
       : !thrower.active && p.z < HUB.minZ + 14 && !hud.isOpen()
-        ? 'Step onto the yellow band to throw!'
+        ? 'Step onto the yellow band to cast!'
         : '',
   )
   hud.frame(dt)
@@ -1190,6 +1253,15 @@ renderer.setAnimationLoop(() => {
   updateCamera(camera, dt)
   director.apply(camera, dt)
   lighting.update(dt, playerGroup.position)
+  // Under the river (the bite shot): a short teal fog, after the sky has set its own colour.
+  if (thrower.underwater) {
+    scene.fog.color.set('#0b6f8a')
+    scene.fog.near = 0.5
+    scene.fog.far = 24
+  } else if (scene.fog.far !== FOG.far) {
+    scene.fog.near = FOG.near
+    scene.fog.far = FOG.far
+  }
   postfx.render()
 
   if (shownLoading) {

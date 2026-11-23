@@ -1,9 +1,12 @@
 // The hub world: a sunken lego meadow, two tiers of grass-topped dirt cliffs all
-// round it, the long lane cut north through them (twelve themed areas), the
-// road, voxel trees and flowers on the terraces, an endless grass plateau beyond
-// and puffy clouds. Static geometry is merged into a few meshes per material.
-import { BoxGeometry, CanvasTexture, Color, ConeGeometry, Group, IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, MeshLambertMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, SRGBColorSpace, Vector2 } from 'three'
+// round it, the long river canyon cut north through them (twelve themed areas: grassy banks
+// along both walls, a sunken channel of stylised animated water down the middle with a sandy
+// bed, kelp and rocks under it, lily pads and buoy lines on top), the road, voxel trees and
+// flowers on the terraces, an endless grass plateau beyond and puffy clouds. Static geometry
+// is merged into a few meshes per material.
+import { BoxGeometry, CanvasTexture, Color, ConeGeometry, DoubleSide, Group, IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, MeshLambertMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, SRGBColorSpace, Vector2 } from 'three'
 import { HUB } from '../config.js'
+import { skyTint } from '../lighting.js'
 import { RAPIER, addFixed } from '../physics.js'
 import { mulberry32 } from '../textures.js'
 import { block, cbox, ccyl, cgeo, flat, merge } from './geo.js'
@@ -35,7 +38,7 @@ function cliffMaterial() {
 
 // Bare dirt (the cliff painter with dirt where the grass would be) for the canyon below the hub.
 function dirtMaterial() {
-  const m = cliffMaps({ grass: '#8b5a33', grassAlt: '#7a4b29' })
+  const m = cliffMaps({ grass: '#8c4426', grassAlt: '#78391f' })
   return new MeshStandardMaterial({
     map: tex(m.color),
     normalMap: tex(m.normal, { srgb: false }),
@@ -58,6 +61,7 @@ function makeClouds() {
   const geo = new IcosahedronGeometry(1, 3)
   const mat = new MeshLambertMaterial({ color: '#ffffff', emissive: '#dcebff', emissiveIntensity: 0.6, fog: false })
   const group = new Group()
+  group.userData.mat = mat // tinted to the sky mood every frame (lighting.js skyTint)
   for (let i = 0; i < 26; i++) {
     const ang = rand() * Math.PI * 2
     const dist = 260 + rand() * 200
@@ -84,8 +88,26 @@ function makeClouds() {
 }
 
 // Voxel trees, flowers and bushes on the terraces (instanced).
+// Boxes scattered at random heights now and then land with a top (or bottom) face a few mm from
+// an overlapping neighbour's, and coplanar faces z-fight (flicker). keepApart(gap) remembers the
+// flat faces placed so far; call it with a new set of boxes stacked on one spot ([footprint
+// radius, bottom y, top y] each; NaN skips a face) and it returns how far to lift the set so
+// every face clears the ones it overlaps by at least `gap`. It draws no random numbers, so the
+// layouts stay the same apart from the lifts.
+function keepApart(gap) {
+  const placed = [] // [x, z, r, y0, y1]
+  const clash = (x, z, r, y0, y1) => placed.some(([px, pz, pr, p0, p1]) => (px - x) ** 2 + (pz - z) ** 2 < (pr + r) ** 2 && (Math.abs(p1 - y1) < gap || Math.abs(p0 - y0) < gap))
+  return (x, z, boxes) => {
+    let dy = 0
+    for (let k = 0; k < 6 && boxes.some(([r, y0, y1]) => clash(x, z, r, y0 + dy, y1 + dy)); k++) dy += gap
+    for (const [r, y0, y1] of boxes) placed.push([x, z, r, y0 + dy, y1 + dy])
+    return dy
+  }
+}
+
 function makeFlora(root, spots) {
   const rand = mulberry32(99)
+  const apart = keepApart(0.05)
   const leafMat = studMaterial('#5fd23a', '#52c62e', { tile: 1.25, seed: 21, seam: 0.12 })
   const leafDark = studMaterial('#43ac25', '#3a9e20', { tile: 1.25, seed: 22, seam: 0.12 })
   const trunkMat = studMaterial('#8b5a33', '#7a4b29', { tile: 0.5, seed: 23, seam: 0.1 })
@@ -110,6 +132,8 @@ function makeFlora(root, spots) {
     sizes.forEach(([w, lh], k) => {
       o.position.set(x + (rand() - 0.5) * 0.6 * s, top + (lh * s) / 2 - 0.15, z + (rand() - 0.5) * 0.6 * s)
       o.scale.set(w * s, lh * s, w * s * (0.85 + rand() * 0.3))
+      // Neighbouring canopies overlap: keep their tops / undersides apart.
+      o.position.y += apart(o.position.x, o.position.z, [[0.5 * Math.hypot(o.scale.x, o.scale.z), o.position.y - o.scale.y / 2, o.position.y + o.scale.y / 2]])
       o.updateMatrix()
       layers[k].setMatrixAt(i, o.matrix)
       top += lh * s - 0.2
@@ -137,17 +161,22 @@ function makeFlowers(root, area, count, seed) {
   const colors = ['#ff5f8a', '#ffd93b', '#ffffff', '#b07cff', '#ff8a2a']
   const stem = new InstancedMesh(new BoxGeometry(0.12, 0.5, 0.12), new MeshStandardMaterial({ color: '#2f9a2a' }), count)
   const head = new InstancedMesh(new BoxGeometry(0.42, 0.22, 0.42), new MeshStandardMaterial({ color: '#ffffff', roughness: 0.6 }), count)
-  const centre = new InstancedMesh(new BoxGeometry(0.18, 0.26, 0.18), new MeshStandardMaterial({ color: '#ffcf33' }), count)
+  // The centre pokes 4 cm out of the head top and bottom (2 cm z-fought from afar).
+  const centre = new InstancedMesh(new BoxGeometry(0.18, 0.3, 0.18), new MeshStandardMaterial({ color: '#ffcf33' }), count)
   const o = new Object3D()
   const c = new Color()
+  const apart = keepApart(0.03)
   for (let i = 0; i < count; i++) {
     const [x, y, z] = area(rand)
-    o.position.set(x, y + 0.25, z)
+    // Overlapping flowers: lift the head so its faces clear its neighbours'; the stem grows to it.
+    const lift = apart(x, z, [[0.3, y + 0.44, y + 0.66], [0.13, y + 0.4, y + 0.7]])
+    o.position.set(x, y + (0.5 + lift) / 2, z)
     o.rotation.set(0, rand() * Math.PI, 0)
-    o.scale.setScalar(1)
+    o.scale.set(1, (0.5 + lift) / 0.5, 1)
     o.updateMatrix()
     stem.setMatrixAt(i, o.matrix)
-    o.position.y = y + 0.55
+    o.scale.setScalar(1)
+    o.position.y = y + 0.55 + lift
     o.updateMatrix()
     head.setMatrixAt(i, o.matrix)
     centre.setMatrixAt(i, o.matrix)
@@ -377,46 +406,12 @@ const PROPS = {
 }
 const ROCKS = { meadow: '#a7adb8', farm: '#b8a080', lake: '#9aa1ad', desert: '#d9a06a', snow: '#e0ecf4', autumn: '#a89080', crystal: '#7a8ab0', beach: '#e8d0a8', reef: '#8ab0c0', heaven: '#ffffff', lava: '#2a2224', cosmic: '#4a4060' }
 
-// A sign board for an area: its number, name and colours, painted once.
-function areaSign(zone, i) {
-  const c = document.createElement('canvas')
-  c.width = 512
-  c.height = 256
-  const x = c.getContext('2d')
-  const g = x.createLinearGradient(0, 0, 0, 256)
-  g.addColorStop(0, zone.banner[0])
-  g.addColorStop(1, zone.banner[1])
-  x.fillStyle = g
-  x.beginPath()
-  x.roundRect(8, 8, 496, 240, 36)
-  x.fill()
-  x.lineWidth = 12
-  x.strokeStyle = '#ffffff'
-  x.stroke()
-  x.textAlign = 'center'
-  x.lineJoin = 'round'
-  x.font = '700 46px Fredoka, "Arial Black", sans-serif'
-  x.strokeStyle = 'rgba(0,0,0,0.55)'
-  x.lineWidth = 10
-  x.strokeText(`AREA ${i + 1}`, 256, 82)
-  x.fillStyle = '#ffffff'
-  x.fillText(`AREA ${i + 1}`, 256, 82)
-  const name = zone.name.toUpperCase()
-  x.font = `700 ${name.length > 12 ? 62 : 72}px Fredoka, "Arial Black", sans-serif`
-  x.lineWidth = 14
-  x.strokeText(name, 256, 178)
-  x.fillStyle = zone.text
-  x.fillText(name, 256, 178)
-  const t = new CanvasTexture(c)
-  t.colorSpace = SRGBColorSpace
-  t.anisotropy = 4
-  return t
-}
-
 function makeLaneEdges(root, lane) {
   const rand = mulberry32(404)
   const W = lane.halfWidth
   const Y = lane.floorY
+  const R = lane.river
+  const bankX = () => (rand() < 0.5 ? -1 : 1) * (R + 0.4 + rand() * (W - R - 0.8))
   const B = []
   const G = []
   for (const side of [-1, 1]) {
@@ -448,42 +443,29 @@ function makeLaneEdges(root, lane) {
         G.push(cbox(0.9, 0.05, len - 1, '#ff6a1a', sx * (W - 2.9), Y + 0.03, (z0 + z1) / 2))
         G.push(cbox(0.4, 0.06, len - 1, '#ffcc33', sx * (W - 2.9), Y + 0.04, (z0 + z1) / 2))
       }
-      for (let i = 0; i < 26; i++) G.push(cbox(0.12, 0.05, 1.2 + rand() * 2.2, rand() < 0.5 ? '#ff5a1a' : '#ff8a2a', (rand() - 0.5) * (W * 2 - 8), Y + 0.03, z1 + rand() * len, 0, rand() * Math.PI, 0))
+      for (let i = 0; i < 26; i++) G.push(cbox(0.12, 0.05, 1.2 + rand() * 2.2, rand() < 0.5 ? '#ff5a1a' : '#ff8a2a', bankX(), Y + 0.03, z1 + rand() * len, 0, rand() * Math.PI, 0))
     } else if (zone.id === 'cosmic') {
-      for (let i = 0; i < 70; i++) G.push(cbox(0.14, 0.04, 0.14, ['#ffffff', '#b07cff', '#3affff'][i % 3], (rand() - 0.5) * (W * 2 - 3), Y + 0.03, z1 + rand() * len, 0, rand(), 0))
+      for (let i = 0; i < 70; i++) G.push(cbox(0.14, 0.04, 0.14, ['#ffffff', '#b07cff', '#3affff'][i % 3], bankX(), Y + 0.03, z1 + rand() * len, 0, rand(), 0))
     } else if (zone.id === 'crystal') {
-      for (let i = 0; i < 40; i++) G.push(cgeo(new ConeGeometry(0.08, 0.3, 4), ['#7ae8ff', '#c8a0ff', '#ff9bd2'][i % 3], (rand() - 0.5) * (W * 2 - 4), Y + 0.12, z1 + rand() * len))
+      for (let i = 0; i < 40; i++) G.push(cgeo(new ConeGeometry(0.08, 0.3, 4), ['#7ae8ff', '#c8a0ff', '#ff9bd2'][i % 3], bankX(), Y + 0.12, z1 + rand() * len))
     } else if (zone.id === 'heaven') {
-      for (let z = z0 - 1; z > z1; z -= 2.2) G.push(cbox(2.4, 0.04, 0.9, '#ffe680', 0, Y + 0.03, z))
+      for (let z = z0 - 1; z > z1; z -= 2.2) for (const sx of [-1, 1]) G.push(cbox(0.9, 0.04, 0.9, '#ffe680', sx * (R + 1.2), Y + 0.03, z))
     }
   }
   // Area boundaries: a glowing line across the floor and a name sign by each wall.
-  const signMats = []
   HUB.zones.forEach((zone, i) => {
     const z = i === 0 ? lane.throwLine - 9 : zone.from
     if (i > 0) {
-      G.push(cbox(W * 2 - 0.4, 0.06, 0.5, zone.banner[0], 0, Y + 0.04, z))
-      for (let s = -W + 1; s < W; s += 2) G.push(cbox(0.5, 0.08, 0.5, '#ffffff', s, Y + 0.05, z - 0.5))
+      for (const sx of [-1, 1]) G.push(cbox(W - R, 0.06, 0.5, zone.banner[0], sx * (R + W) / 2, Y + 0.04, z))
+      // A rope of buoys across the water in the area's colours.
+      B.push(cbox(R * 2, 0.06, 0.06, '#f4f4f4', 0, Y + lane.water + 0.12, z))
+      for (let s = -R + 0.8, k = 0; s < R; s += 1.6, k++) B.push(cgeo(new IcosahedronGeometry(0.28, 1), k % 2 ? '#ffffff' : zone.banner[0], s, Y + lane.water + 0.14, z))
     }
-    const mat = new MeshStandardMaterial({ map: areaSign(zone, i), roughness: 0.6, emissive: '#ffffff', emissiveMap: null, emissiveIntensity: 0 })
-    mat.emissiveMap = mat.map
-    mat.emissiveIntensity = 0.35
-    signMats.push(mat)
     for (const side of [-1, 1]) {
       const x = side * (W - 1.1)
       B.push(cbox(0.4, 5.2, 0.4, zone.banner[1], x, Y + 2.6, z))
       B.push(cbox(0.7, 0.3, 0.7, zone.banner[0], x, Y + 0.15, z))
       G.push(cgeo(new IcosahedronGeometry(0.28, 1), zone.banner[0], x, Y + 7.6, z))
-      const board = new Mesh(new PlaneGeometry(4.4, 2.2), mat)
-      board.position.set(x - side * 0.2, Y + 6.1, z + 0.25)
-      board.rotation.y = -side * 0.55
-      root.add(board)
-      const back = new Mesh(new BoxGeometry(4.6, 2.4, 0.18), new MeshStandardMaterial({ color: zone.banner[1], roughness: 0.7 }))
-      back.position.copy(board.position)
-      back.rotation.y = board.rotation.y
-      back.translateZ(-0.1)
-      back.castShadow = true
-      root.add(back)
     }
   })
   const body = new Mesh(merge(B), new MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }))
@@ -527,11 +509,16 @@ function makeRimCrops(root, lane, W1, W2, nz1, nz2, d1) {
       }
     }
   }
+  const apart = keepApart(0.03)
   const beds = (x0, x1, z0, z1, y, n) => {
     for (let k = 0; k < n && f < maxF; k++) {
       o.position.set(x0 + rand() * (x1 - x0), y + 0.2, z0 + rand() * (z1 - z0))
       o.rotation.set(0, rand() * 3, 0)
       o.scale.set(0.8 + rand() * 0.8, 0.6 + rand() * 0.6, 0.8 + rand() * 0.8)
+      // Overlapping bushes whose tops nearly meet z-fight: grow this one up past the other.
+      const lift = apart(o.position.x, o.position.z, [[0.25 * Math.hypot(o.scale.x, o.scale.z), NaN, y + 0.2 + 0.25 * o.scale.y]])
+      o.scale.y += lift / 0.5
+      o.position.y += lift / 2
       o.updateMatrix()
       flower.setMatrixAt(f, o.matrix)
       flower.setColorAt(f++, c.set(purples[Math.floor(rand() * purples.length)]))
@@ -552,6 +539,124 @@ function makeRimCrops(root, lane, W1, W2, nz1, nz2, d1) {
   wheat.count = i
   flower.count = f
   root.add(wheat, flower)
+}
+
+// --- The river -------------------------------------------------------------------------------------
+// A channel `river` m either side of the lane's centre line, sunk `depth` m below the banks: a
+// sandy stud bed with kelp, rocks and shells, dirt walls, and per area one water surface
+// (lane.water below the banks) with an animated cell-caustic pattern in the area's water colour
+// (AREAS water / waterLine). Lily pads with pink flowers drift along the edges. Seen from below
+// (the bite cutscene dives under it) the surface is double sided.
+const WATER_VERT = 'varying vec3 vWPos;\n'
+const WATER_FRAG = `
+uniform float uTime;
+uniform vec3 uDeep;
+uniform vec3 uLine;
+varying vec3 vWPos;
+vec2 wh2(vec2 p) { p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
+float wcell(vec2 p, float t) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  float d1 = 8.0;
+  float d2 = 8.0;
+  for (int y = -1; y <= 1; y++)
+    for (int x = -1; x <= 1; x++) {
+      vec2 g = vec2(float(x), float(y));
+      vec2 o = 0.5 + 0.42 * sin(t + 6.2831 * wh2(i + g));
+      float d = length(g + o - f);
+      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+    }
+  return d2 - d1;
+}
+`
+export const waterUniforms = { time: { value: 0 } }
+function waterMaterial(deep, line, glow = 0) {
+  // Self-lit base (emissive) so the water stays a vivid cyan under the warm sunset light.
+  const m = new MeshLambertMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, side: DoubleSide, emissive: deep, emissiveIntensity: 0.2 + glow })
+  const dc = new Color(deep)
+  const lc = new Color(line)
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = waterUniforms.time
+    sh.uniforms.uDeep = { value: dc }
+    sh.uniforms.uLine = { value: lc }
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\n' + WATER_VERT)
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + WATER_FRAG).replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      vec2 wp = vWPos.xz * 0.26;
+      float e1 = wcell(wp, uTime * 0.9);
+      float e2 = wcell(wp * 1.85 + 3.7, uTime * 1.3);
+      float l1 = 1.0 - smoothstep(0.0, 0.11, e1);
+      float l2 = 1.0 - smoothstep(0.0, 0.07, e2);
+      vec3 wc = mix(uDeep * 0.55, uDeep * 0.88, smoothstep(0.0, 0.55, e1));
+      wc = mix(wc, uLine, clamp(l1 * 0.9 + l2 * 0.3, 0.0, 1.0));
+      diffuseColor.rgb = wc;`,
+    )
+  }
+  m.customProgramCacheKey = () => `water-${deep}-${line}-${glow}`
+  return m
+}
+function makeRiver(root, lane, dropZ) {
+  const R = lane.river
+  const bedY = lane.floorY - lane.depth
+  const wy = lane.floorY + lane.water
+  const rand = mulberry32(909)
+  // Bed: sand studs, one strip for the whole river.
+  const bed = new Mesh(flat(-R, R, lane.end - 2, dropZ, bedY, HUB.studTile), studMaterial('#e8d8a0', '#dccb8e', { seed: 11 }))
+  bed.receiveShadow = true
+  root.add(bed)
+  const B = []
+  const G = []
+  // Channel walls (dirt) and the two ends.
+  // The side walls stop 3 cm under the banks: their tops sat exactly in the bank floor's plane
+  // (y = floorY) and z-fought with it along both river edges.
+  const wallH = lane.depth - 0.03
+  for (const sx of [-1, 1]) B.push(cbox(0.6, wallH, dropZ - lane.end + 2, '#8e3e22', sx * (R + 0.3), bedY + wallH / 2, (dropZ + lane.end - 2) / 2))
+  B.push(cbox(R * 2, lane.depth, 0.6, '#8e3e22', 0, bedY + lane.depth / 2, dropZ + 0.3))
+  B.push(cbox(R * 2, lane.depth, 0.6, '#8e3e22', 0, bedY + lane.depth / 2, lane.end - 2.3))
+  // Under water: kelp, rocks, shells; on top: lily pads.
+  for (let z = dropZ - 3; z > lane.end; z -= 1.6 + rand() * 2.4) {
+    const zone = zoneAt(Math.min(z, lane.throwLine - 0.5)) ?? HUB.zones[0]
+    const x = (rand() - 0.5) * (R * 2 - 1.2)
+    const r = rand()
+    if (r < 0.45) {
+      const h = 1.2 + rand() * 2.6
+      const kc = zone.id === 'lava' ? '#5a2a20' : zone.id === 'cosmic' ? '#6a4ab0' : zone.id === 'crystal' ? '#7ae8ff' : '#2f9a4a'
+      for (let y = 0; y < h; y += 0.5) B.push(cbox(0.3, 0.5, 0.3, y % 1 ? kc : tintHex(kc, 0.08), x + Math.sin(y * 1.7) * 0.15, bedY + y + 0.25, z))
+      B.push(cbox(0.5, 0.18, 0.2, tintHex(kc, 0.12), x + 0.3, bedY + h * 0.6, z))
+    } else if (r < 0.75) {
+      const k = 0.4 + rand() * 0.6
+      B.push(cbox(k * 1.2, k * 0.8, k, ROCKS[zone.id] ?? '#a7adb8', x, bedY + k * 0.4, z, 0, rand(), 0))
+    } else if (r < 0.85) {
+      B.push(cbox(0.3, 0.15, 0.3, rand() < 0.5 ? '#ffb3c8' : '#fff0d8', x, bedY + 0.08, z, 0, rand(), 0))
+    }
+    if (rand() < 0.5 && zone.id !== 'lava') {
+      const lx = (rand() < 0.5 ? -1 : 1) * (R - 0.8 - rand() * 1.6)
+      B.push(ccyl(0.55 + rand() * 0.3, 0.55, 0.06, '#4cbf3a', lx, wy + 0.04, z, 0, 0, 0, 10))
+      if (rand() < 0.4) G.push(cbox(0.22, 0.18, 0.22, '#ff8ac0', lx + 0.1, wy + 0.16, z))
+    }
+  }
+  const props = new Mesh(merge(B), new MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }))
+  props.castShadow = true
+  props.receiveShadow = true
+  root.add(props)
+  if (G.length) root.add(new Mesh(merge(G), new MeshBasicMaterial({ vertexColors: true, color: new Color(1.4, 1.4, 1.4) })))
+  // One surface per area.
+  for (const zone of HUB.zones) {
+    const z0 = Math.min(zone.from, dropZ)
+    const z1 = Math.max(zone.to, lane.end - 2)
+    if (z0 <= z1) continue
+    const geo = new PlaneGeometry(R * 2, z0 - z1)
+    geo.rotateX(-Math.PI / 2)
+    const m = new Mesh(geo, waterMaterial(zone.water ?? '#2fd0d8', zone.waterLine ?? '#ffffff', zone.id === 'lava' ? 0.5 : zone.id === 'cosmic' ? 0.25 : 0))
+    m.position.set(0, wy, (z0 + z1) / 2)
+    m.renderOrder = 1
+    m.receiveShadow = true
+    root.add(m)
+  }
+  return waterUniforms
 }
 
 export function buildHub(scene) {
@@ -589,11 +694,15 @@ export function buildHub(scene) {
     const mat = studMaterial(z.color, z.alt, { seed: 7 })
     const parts = []
     if (z.from > dropZ) parts.push(flat(-lane.halfWidth, lane.halfWidth, Math.max(z.to, dropZ), z.from, 0, HUB.studTile))
-    if (z.to < dropZ) parts.push(flat(-lane.halfWidth, lane.halfWidth, z.to, Math.min(z.from, dropZ), lane.floorY, HUB.studTile))
+    if (z.to < dropZ) {
+      for (const [a, b] of [[-lane.halfWidth, -lane.river], [lane.river, lane.halfWidth]]) parts.push(flat(a, b, z.to, Math.min(z.from, dropZ), lane.floorY, HUB.studTile))
+    }
     const m = new Mesh(parts.length > 1 ? merge(parts) : parts[0], mat)
     m.receiveShadow = true
     root.add(m)
   }
+
+  const water = makeRiver(root, lane, dropZ)
 
   // --- Cliffs: tier 1 (0..T) and tier 2 (T..2T), lane walls through the north side ---
   const lists = { sides: [], tops: [] }
@@ -697,6 +806,11 @@ export function buildHub(scene) {
     root,
     treeSpots: spots,
     update(dt) {
+      water.time.value += dt
+      const cm = clouds.userData.mat
+      cm.color.copy(skyTint.puff)
+      cm.emissive.copy(skyTint.puffGlow)
+      cm.emissiveIntensity = skyTint.puffGlowK
       for (const c of clouds.children) {
         c.position.x += c.userData.speed * dt
         if (c.position.x > 520) c.position.x = -520

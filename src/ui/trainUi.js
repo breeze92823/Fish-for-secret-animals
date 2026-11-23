@@ -1,6 +1,6 @@
 // Training Place overlay: the red STOP button over a "Level N  xp/need" bar (bottom
 // centre, above the hotbar) and the LEVEL UP pop with
-// "+5 Throwing Strength" over it (each pop leaves a fading ghost that drifts up, so a
+// "+5 Power" over it (each pop leaves a fading ghost that drifts up, so a
 // quick run of level ups stacks). It also bumps the HUD strength counter. Shown while
 // body.training is set.
 // Random XP boosts: drop(v) pops the round gold "2x" hand button (3x, 5x, 10x) at a random
@@ -156,7 +156,7 @@ export function createTrainUi({ onStop, onGrab }) {
 
   function levelUp(levels, level) {
     const n = levels * TRAINING.strengthPerLevel
-    const pop = el('div', 'trn-pop', `<div class="str outline">+${fmt(n, 0)} Throwing Strength</div><div class="lvl outline">LEVEL UP</div>`)
+    const pop = el('div', 'trn-pop', `<div class="str outline">+${fmt(n, 0)} Power</div><div class="lvl outline">LEVEL UP</div>`)
     pops.appendChild(pop)
     // Older pops become ghosts that drift up and fade.
     for (const old of pops.querySelectorAll('.trn-pop:not(:last-child)')) old.classList.add('ghost')

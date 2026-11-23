@@ -3,12 +3,12 @@
 // Pen upgrade, Shop upgrades, Index, My Baddies, Settings, rewards). Windows are
 // rebuilt from state each time they open or the state changes while open.
 import './hud.css'
-import { BADDIES, ECONOMY, FUSE, RARITIES, SIZES, UPGRADES, VARIANTS } from '../config.js'
+import { BADDIES, BAITS, BOOST_SHOP, ECONOMY, FUSE, RARITIES, SIZES, TRAILS, UPGRADES, VARIANTS } from '../config.js'
 import { BY_ID } from '../game/baddieModel.js'
 import { fmt, money } from '../game/format.js'
 import * as state from '../game/state.js'
 import { ICON } from './icons.js'
-import { createFoodShop } from './foodShop.js'
+import { createTackleShop } from './tackleShop.js'
 import { createIndexView } from './indexWin.js'
 import * as girlSfx from '../audio/girlSfx.js'
 import { baddiePortrait } from './snapshot.js'
@@ -45,9 +45,9 @@ export function createHud({ sfx, actions, onReservedAreas }) {
   indexBtn.appendChild(indexBadge)
   left.append(shopBtn, indexBtn)
   const portrait = el('button', 'hud-portrait', '<img alt=""><span class="count outline"></span>')
-  portrait.title = 'My Baddies'
+  portrait.title = 'My Animals'
   const stats = el('div', 'hud-stats')
-  const strRow = el('div', 'hud-row hud-strength', `${ICON.arm}<span class="val outline">10</span>`)
+  const strRow = el('div', 'hud-row hud-strength', `${ICON.arm}<span class="val outline">10</span><span class="lbl outline">Power</span>`)
   const moneyRow = el('div', 'hud-row hud-money', `${ICON.cash}<span class="val">$0</span><em class="hud-gain"></em>`)
   stats.append(strRow, moneyRow)
   const friend = el('div', 'hud-friend', '<b>FRIEND BOOST +0%</b><small>Play with friends: +15% each!</small>')
@@ -242,7 +242,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     activeKey = key
     activeHead.textContent = `${list.length}/${state.capacity()} Active`
     activeList.innerHTML = ''
-    if (!list.length) activeList.appendChild(el('div', 'ha-empty outline', state.S.hotbar.length ? 'Tap Equip Best to put your baddies to work!' : 'Catch baddies in the lane, then place them in your pen.'))
+    if (!list.length) activeList.appendChild(el('div', 'ha-empty outline', state.S.hotbar.length ? 'Tap Equip Best to put your animals to work!' : 'Catch animals in the river, then place them in your pen.'))
     for (const b of list) {
       const def = BY_ID[b.id]
       const r = el('div', 'ha-row')
@@ -253,7 +253,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
       un.addEventListener('click', () => {
         if (hotFull) {
           sfx.deny()
-          toast('Your hotbar is full! Place or sell a baddie first.', 'warn')
+          toast('Your hotbar is full! Place or sell an animal first.', 'warn')
           return
         }
         actions.unequip(b.uid)
@@ -266,7 +266,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
   equipBest.addEventListener('click', () => {
     if (!state.S.hotbar.length) {
       sfx.deny()
-      toast('Your hotbar is empty: catch some baddies first!', 'warn')
+      toast('Your hotbar is empty: catch some animals first!', 'warn')
       return
     }
     actions.equipBest()
@@ -336,7 +336,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
   }
 
   // --- Food Shop (ui/foodShop.js) ---
-  const foodShop = createFoodShop({ sfx, toast: (t, k) => toast(t, k), celebrate: () => actions.celebrate?.() })
+  const tackle = createTackleShop({ sfx, toast: (t, k) => toast(t, k), celebrate: () => actions.celebrate?.(), onTrailTry: (d) => actions.trailTry?.(d) })
 
   // --- Card for an owned baddie ---
   function baddieCard(b, { price = null, count = 0, dim = false, onClick = null } = {}) {
@@ -373,7 +373,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     }
     section('Not placed', hot)
     section('In your pen', pen)
-    if (!all.length) grid.appendChild(el('div', 'note sellw-empty', 'No baddies to sell yet. Throw food in the lane to catch some!'))
+    if (!all.length) grid.appendChild(el('div', 'note sellw-empty', 'No animals to sell yet. Cast your rod in the river to catch some!'))
     const hotTotal = hot.reduce((t, e) => t + state.sellPrice(e.b), 0)
     const sellAll = el('button', `sellw-all ${hot.length ? '' : 'off'}`, `${ICON.cash}<span class="outline">Sell All (${money(hotTotal)})</span>`)
     sellAll.disabled = !hot.length || busy
@@ -384,7 +384,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
       sellConfirm = false
       refresh()
     })
-    leftCol.append(grid, sellAll, el('div', 'sellw-keep outline', 'Keeps baddies in your pen'))
+    leftCol.append(grid, sellAll, el('div', 'sellw-keep outline', 'Keeps animals in your pen'))
 
     const right = el('div', 'sellw-right')
     const picked = all.filter((e) => sellSel.has(e.b))
@@ -397,7 +397,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
       img.src = baddiePortrait(e.b.id)
       box.appendChild(img)
     })
-    const label = picked.length === 1 ? fullName(picked[0].b) : picked.length ? `${picked.length} baddies` : 'Tap baddies to sell'
+    const label = picked.length === 1 ? fullName(picked[0].b) : picked.length ? `${picked.length} baddies` : 'Tap animals to sell'
     pv.append(box, el('b', 'pv-label outline', esc(label)))
     if (picked.length) pv.appendChild(el('span', 'pv-price outline', `+${money(total)}`))
     const sellBtn = el('button', `sellw-sell ${picked.length ? (sellConfirm ? 'confirm' : 'on') : ''}`, `<span class="outline">${picked.length && sellConfirm ? 'Sure?' : 'Sell'}</span>`)
@@ -410,7 +410,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
         return
       }
       const got = actions.sellMany(picked)
-      if (got) toast(picked.length === 1 ? `Sold ${fullName(picked[0].b)} for ${money(got)}` : `Sold ${picked.length} baddies for ${money(got)}`, 'good')
+      if (got) toast(picked.length === 1 ? `Sold ${fullName(picked[0].b)} for ${money(got)}` : `Sold ${picked.length} animals for ${money(got)}`, 'good')
       sellSel.clear()
       sellConfirm = false
       refresh()
@@ -476,7 +476,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     const busy = actions.fusing()
     actions.fuseSlots?.(fuseSel.filter(Boolean).length)
     const w = el('div', 'fusew')
-    w.innerHTML = `<div class="fw-title outline">Bring <em>3</em> same Baddies to Fuse</div><div class="fw-sub outline"><em>Always</em> a bigger size, sometimes even <em>Luckier</em>!</div>`
+    w.innerHTML = `<div class="fw-title outline">Bring <em>3</em> same Animals to Fuse</div><div class="fw-sub outline"><em>Always</em> a bigger size, sometimes even <em>Luckier</em>!</div>`
     if (picking >= 0 && !busy) {
       w.appendChild(fusePicker())
       body.appendChild(w)
@@ -503,7 +503,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
       } else {
         s.innerHTML = '<b class="outline">Empty</b>'
         const plus = el('button', 'fw-plus', '<i></i>')
-        plus.title = 'Add a baddie'
+        plus.title = 'Add an animal'
         plus.disabled = busy
         plus.addEventListener('click', () => {
           picking = i
@@ -559,7 +559,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     })
     btns.append(left, all)
     w.appendChild(btns)
-    if (!own.length) w.appendChild(el('div', 'fw-hint outline', 'Catch baddies in the lane first: 3 of a kind make a BIG one (4x income), 3 BIG make a HUGE (20x)!'))
+    if (!own.length) w.appendChild(el('div', 'fw-hint outline', 'Catch animals in the river first: 3 of a kind make a BIG one (4x income), 3 BIG make a HUGE (20x)!'))
     body.appendChild(w)
   }
   function fusePicker() {
@@ -570,11 +570,11 @@ export function createHud({ sfx, actions, onReservedAreas }) {
       picking = -1
       refresh()
     })
-    head.append(el('b', 'outline', 'Pick a baddie'), back)
+    head.append(el('b', 'outline', 'Pick an animal'), back)
     p.appendChild(head)
     const gs = groupsOf(fuseCandidates()).sort((a, b) => b.length - a.length || state.baddieIncome(b[0].b) - state.baddieIncome(a[0].b))
     if (!gs.length) {
-      p.appendChild(el('div', 'note', fuseSel.some(Boolean) ? 'You have no more of this baddie.' : 'Nothing to fuse yet. HUGE baddies are already the biggest!'))
+      p.appendChild(el('div', 'note', fuseSel.some(Boolean) ? 'You have no more of this animal.' : 'Nothing to fuse yet. HUGE animals are already the biggest!'))
       return p
     }
     const grid = el('div', 'grid')
@@ -603,27 +603,61 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     const cap = state.capacity()
     sub.textContent = `${state.S.baddies.length}/${cap} baddies`
     if (state.capacityMaxed()) {
-      body.appendChild(el('div', 'note', `Your pen is at its biggest: ${cap} baddies.`))
+      body.appendChild(el('div', 'note', `Your pen is at its biggest: ${cap} animals.`))
       return
     }
     const next = cap + 2
     const cost = state.capacityCost()
     const r = el('div', 'row')
-    r.innerHTML = `<div class="row-img" style="font-size:2.2em">\u{1F3E0}</div><div class="row-text"><b>Pen capacity ${cap} → ${next}</b><small>Room for 2 more baddies earning money</small></div>`
+    r.innerHTML = `<div class="row-img" style="font-size:2.2em">\u{1F3E0}</div><div class="row-text"><b>Pen capacity ${cap} → ${next}</b><small>Room for 2 more animals earning money, and the pen grows toward the river</small></div>`
     r.appendChild(button(money(cost), state.S.money >= cost ? '' : 'poor', () => {
       if (state.upgradeCapacity()) {
         sfx.upgrade()
         actions.celebrate?.()
-        toast(`Pen upgraded! Holds ${state.capacity()} baddies`, 'good')
+        toast(`Pen upgraded! Holds ${state.capacity()} animals`, 'good')
         refresh()
       } else sfx.deny()
     }))
     body.appendChild(r)
   }
 
-  // --- Shop (upgrades) ---
+  // --- Shop: fishing gear (rods, baits, trails), boosts and upgrades. Money only. ---
   function shop(body, sub) {
     sub.textContent = 'Spend your money'
+    const gear = el('div', 'gear-tiles')
+    const rod = state.food()
+    const bait = state.bait()
+    const trail = state.trail()
+    const tile = (cls, id, icon, title, line) => {
+      const t = el('button', `gear-tile ${cls}`, `<span class="gt-ico">${icon}</span><b class="outline">${esc(title)}</b><small>${esc(line)}</small>`)
+      t.addEventListener('click', () => show(id))
+      return t
+    }
+    gear.append(
+      tile('rods', 'foodShop', '\u{1F3A3}', 'Rods', `${rod.name} • x${rod.luck} luck`),
+      tile('baits', 'baitShop', '\u{1FAB1}', 'Baits', bait ? `${bait.name} • ${state.baitCount(bait.id)} left` : `${BAITS.length} baits to try`),
+      tile('trails', 'trailShop', '\u{1F308}', 'Trails', trail ? `${trail.name} on` : `${TRAILS.length} trails`),
+    )
+    body.appendChild(gear)
+
+    body.appendChild(el('h3', 'shop-h outline', 'Boosts'))
+    const boosts = el('div', 'rows')
+    for (const b of BOOST_SHOP) {
+      const cost = state.boostPrice(b)
+      const r = el('div', 'row')
+      r.innerHTML = `<div class="row-img" style="font-size:2.4em">${b.icon}</div><div class="row-text"><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`
+      r.appendChild(button(money(cost), state.S.money >= cost ? '' : 'poor', () => {
+        if (state.buyBoost(b.id)) {
+          sfx.upgrade()
+          toast(`${b.name} added!`, 'good')
+          refresh()
+        } else sfx.deny()
+      }))
+      boosts.appendChild(r)
+    }
+    body.appendChild(boosts)
+
+    body.appendChild(el('h3', 'shop-h outline', 'Upgrades'))
     const rows = el('div', 'rows')
     const emoji = { cash: '\u{1F4B0}', arms: '\u{1F4AA}', luck: '\u{1F340}', speed: '\u{1F45F}', magnet: '\u{1F9F2}' }
     for (const u of UPGRADES) {
@@ -653,7 +687,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
   function mine(body, sub) {
     sub.textContent = `${state.S.baddies.length}/${state.capacity()} • $${fmt(state.income())}/s`
     if (!state.S.baddies.length) {
-      body.appendChild(el('div', 'note', 'Your pen is empty. Walk north to the lane, hold to charge and throw food near a baddie!'))
+      body.appendChild(el('div', 'note', 'Your pen is empty. Walk north to the river, step on the yellow band and cast your rod!'))
       return
     }
     const grid = el('div', 'grid')
@@ -688,17 +722,19 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     }))
     s.append(vol, mute, day, reset)
     body.appendChild(s)
-    body.appendChild(el('div', 'keys', '<kbd>WASD</kbd> move • <kbd>Shift</kbd> run • <kbd>Space</kbd> jump • <b>Hold click</b> or <kbd>F</kbd> charge a throw • <kbd>V</kbd> camera • <kbd>N</kbd> day/night • <kbd>R</kbd> respawn • Walk into the coloured rings to shop'))
+    body.appendChild(el('div', 'keys', '<kbd>WASD</kbd> move • <kbd>Shift</kbd> run • <kbd>Space</kbd> jump • <b>Yellow band</b> + click / <kbd>F</kbd> cast • <kbd>V</kbd> camera • <kbd>N</kbd> day/night • <kbd>R</kbd> respawn • Walk into the coloured rings to shop'))
   }
 
   const WINDOWS = {
-    foodShop: { title: 'Food Shop', accent: '#ff4f4f', cls: 'food-win', render: foodShop.render, update: foodShop.update },
+    foodShop: { title: 'Rods & Bait', accent: '#d83cf5', cls: 'tk-win', render: tackle.rods.render, update: tackle.rods.update },
+    baitShop: { title: 'Rods & Bait', accent: '#d83cf5', cls: 'tk-win', render: tackle.baits.render, update: tackle.baits.update },
+    trailShop: { title: 'Trail Shop', accent: '#d83cf5', cls: 'tk-win tk-trail', render: tackle.trails.render, update: tackle.trails.update },
     sell: { title: 'Sell', accent: '#4fd23a', render: sell, cls: 'win-sell' },
     fuse: { title: 'Fuse Machine', accent: '#2f8cff', render: fuseWin, cls: 'win-fuse' },
     pen: { title: 'Upgrade Pen', accent: '#ff9a2e', render: penUpgrade },
     shop: { title: 'Shop', accent: '#4fd23a', render: shop },
     index: { title: 'Index', accent: '#b04aff', render: index, cls: 'win-index' },
-    mine: { title: 'My Baddies', accent: '#ff7fb8', render: mine },
+    mine: { title: 'My Animals', accent: '#ff7fb8', render: mine },
     settings: { title: 'Settings', accent: '#8e96a6', render: settings },
   }
   function show(id, proximity = false) {
@@ -719,7 +755,7 @@ export function createHud({ sfx, actions, onReservedAreas }) {
     indexBadge.style.display = 'none'
     isOpen('index') ? closeWindow() : show('index')
   })
-  portrait.title = 'Active baddies'
+  portrait.title = 'Active animals'
   portrait.addEventListener('click', () => {
     setFolded(false)
     sfx.windowOpen()

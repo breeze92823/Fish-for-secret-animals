@@ -106,6 +106,11 @@ export function addFixedBoxFor(mesh, opts) {
   return addFixed(RAPIER.ColliderDesc.cuboid((p.width * s.x) / 2, (p.height * s.y) / 2, (p.depth * s.z) / 2), mesh.position, mesh.quaternion, opts)
 }
 
+// Drops a collider made by addFixed (static geometry that moves, e.g. a pen that grows).
+export function removeFixed(collider) {
+  if (collider && world) world.removeCollider(collider, false)
+}
+
 export function removeBody(body) {
   world.removeRigidBody(body)
 }

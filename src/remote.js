@@ -10,7 +10,8 @@
 // pen contents reuse Pen's own (already throttled) baddie simulation.
 import * as THREE from 'three'
 import { Group, Quaternion, Vector3 } from 'three'
-import { PLAYER_DIMS, REMOTE } from './config.js'
+import { PLAYER_DIMS, REMOTE, TRAILS } from './config.js'
+import { emitTrail } from './fx/trails.js'
 import * as bloxity from './bloxity.js'
 import { buildDefaultCharacter, loadBaseCharacter } from './avatar/character.js'
 import { applyProportions, attachEquippedAccessories } from './avatar/loader.js'
@@ -18,7 +19,7 @@ import { disposeAnimator, makeAnimator } from './avatar/animator.js'
 import { EmotePlayer } from './avatar/emotes.js'
 import { dynLabel } from './hub/dynlabel.js'
 import { Baddie } from './game/baddieModel.js'
-import { foodColors, foodMesh } from './game/foods.js'
+import { bobberMesh, foodColors, rodMesh } from './game/foods.js'
 
 const rotQ = new Quaternion()
 const tmp = new Vector3()
@@ -100,7 +101,7 @@ class RemotePlayer {
     this.bubble = bloxity.attachChatBubble(THREE, this.group, text)
   }
 
-  // The food in the right hand while aiming (a child of the hand bone: it follows the arm).
+  // The rod in the right hand while aiming (a child of the hand bone: it follows the arm).
   syncHeld(show) {
     const id = show ? this.p.food : ''
     if (id === this.heldId) return
@@ -109,7 +110,9 @@ class RemotePlayer {
     this.held = null
     if (!id || !this.armR) return
     this.held = new Group()
-    this.held.add(foodMesh(id))
+    const rod = rodMesh(id, 2.4)
+    rod.rotation.x = Math.PI / 2 // out of the fist, along the forearm's forward
+    this.held.add(rod)
     const k = 1 / (this.avatar.scale.x || 1)
     this.held.scale.setScalar(k)
     this.held.position.set(0, -2.6, 0.3)
@@ -219,20 +222,22 @@ class RemotePlayer {
   }
 }
 
-// A thrown food in flight: the same arc as the thrower's (from -> to over dur with a parabolic
-// peak), a sparkle trail while near, a burst of crumbs and chunks on landing.
+// A cast bobber in flight: the same arc as the caster's (from -> to over dur with a parabolic
+// peak), a sparkle trail while near, a splash of white cubes on the water.
 class Flight {
   constructor(scene, e) {
     this.e = e
     this.t = 0
-    this.mesh = foodMesh(e.food)
-    this.mesh.scale.setScalar(1.35)
+    this.mesh = bobberMesh(e.food)
+    this.mesh.scale.setScalar(1.25)
     this.mesh.position.set(e.from.x, e.from.y, e.from.z)
     scene.add(this.mesh)
     this.colors = foodColors(e.food)
+    this.trail = TRAILS.find((t) => t.id === e.trail) ?? null // the sender's equipped trail
   }
 }
 
+const flightDir = new Vector3()
 export function createRemotePlayers(scene, { fx, sfx, pens, localPos }) {
   const remotes = new Map() // sessionId -> RemotePlayer
   const flights = []
@@ -290,12 +295,11 @@ export function createRemotePlayers(scene, { fx, sfx, pens, localPos }) {
     const at = tmp.set(e.to.x, e.to.y - 0.25, e.to.z)
     const near = localPos().distanceToSquared(at) < REMOTE.fxDist * REMOTE.fxDist
     if (near) {
-      fx.ring(at, f.colors[0] ?? '#ffffff', { r0: 0.5, r1: 7, life: 0.7 })
-      fx.puff(at, '#fff8e8', 12, { size: 1, spread: 3.5, up: 1.2, life: 1, alpha: 0.6 })
-      fx.crumbs(at, f.colors, 26)
-      fx.chunks(tmp.set(e.to.x, e.to.y, e.to.z), f.colors, 18, { power: 0.75 + e.power * 0.4, floor: e.to.y - 0.4 })
+      fx.ring(at, '#ffffff', { r0: 0.5, r1: 7, life: 0.7 })
+      fx.puff(at, '#ffffff', 12, { size: 1, spread: 3, up: 2, life: 1, alpha: 0.7 })
+      fx.chunks(tmp.set(e.to.x, e.to.y + 0.3, e.to.z), ['#ffffff', '#f2fdff', '#e8fbff'], 18, { power: 0.75 + e.power * 0.4, floor: e.to.y - 0.15, size: 0.16 })
       fx.sparkle(at, '#ffffff', 16, { speed: 6, up: 3 })
-      sfx.impact?.(0.25)
+      sfx.splash?.(0.3)
     }
     pens[f.base]?.celebrate() // their baddies cheer (local only, not synced)
     f.mesh.removeFromParent()
@@ -321,10 +325,12 @@ export function createRemotePlayers(scene, { fx, sfx, pens, localPos }) {
         e.from.y + (e.to.y - e.from.y) * u + 4 * e.peak * u * (1 - u),
         e.from.z + (e.to.z - e.from.z) * u,
       )
-      f.mesh.rotation.x -= dt * 14
-      f.mesh.rotation.z += dt * 3
+      f.mesh.rotation.z = Math.sin(f.t * 9) * 0.3
       if (me.distanceToSquared(f.mesh.position) < REMOTE.fxDist * REMOTE.fxDist) {
-        fx.trail(f.mesh.position, f.colors[0] ?? '#ffffff')
+        if (f.trail) {
+          flightDir.set(e.to.x - e.from.x, 0, e.to.z - e.from.z).normalize().multiplyScalar(0.4)
+          emitTrail(fx, f.trail, f.mesh.position, flightDir, dt, f.t, 0.8)
+        } else fx.trail(f.mesh.position, f.colors[0] ?? '#ffffff')
         if (Math.random() < dt * 20) fx.sparkle(f.mesh.position, e.lucky ? '#ffe14a' : '#ffffff', 2, { speed: 1.5, up: 0.5, size: 0.3, life: 0.5 })
       }
       if (u >= 1) {

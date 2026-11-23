@@ -419,6 +419,80 @@ export function lockIn(grade = 2) {
   else if (grade === 2) glock(t + 0.03, [4, 7], 0.05, 0.08, 0.2)
   else tone({ t: t + 0.03, f: 300, f2: 180, d: 0.18, gain: 0.08, lp: 1200 })
 }
+// A brassy chord stab: detuned saws through a lowpass that opens and closes (notes in semitones from f).
+function stab(t, f, notes, { gain = 0.06, d = 0.5, lp = 2600, verb = 0.3 } = {}) {
+  for (const n of notes) {
+    for (const det of [-9, 9]) tone({ t, type: 'sawtooth', f: f * semi(n), detune: det, a: 0.012, hold: 0.05, d, gain, lp, lpq: 1.2, verb, pan: det / 30 })
+  }
+}
+// A rising noise sweep that builds over dur s (the windup holding back).
+function riser(t, dur, gain = 0.1) {
+  burst({ t, noise: 'pink', f: 300, f2: 6000, q: 2.2, a: dur * 0.9, d: 0.08, gain })
+  tone({ t, type: 'triangle', f: 180, f2: 720, glide: dur, a: dur * 0.8, d: 0.1, gain: gain * 0.5, lp: 2400 })
+}
+// The cast banner pops (THROW_MODE.castFx): grade 0 PERFECT .. 3 WEAK; special = 'secret' (Jackpot
+// Bait) / 'lucky' (Lucky Cast). PERFECT: a fanfare stab, party poppers and a riser into the
+// release; GREAT: a smaller stab; GOOD: a soft riser; WEAK: a sad "wah-wah-wahhh".
+export function castShow(grade = 2, special = '') {
+  if (!voice(2.2, 4)) return
+  const t = now() + 0.05
+  const big = grade === 0 || special
+  if (big) {
+    stab(t, 523.25, [0, 4, 7, 12], { gain: 0.05, d: 0.55 })
+    stab(t + 0.16, 523.25, [5, 9, 12, 17], { gain: 0.045, d: 0.35 })
+    stab(t + 0.3, 523.25, [7, 12, 16, 19], { gain: 0.055, d: 0.8 })
+    popper(t + 0.02, -0.6)
+    popper(t + 0.1, 0.6)
+    glock(t + 0.32, [12, 16, 19, 24, 28, 31], 0.045, 0.1, 0.4)
+    riser(t + 0.2, 0.75, 0.09)
+    if (special === 'secret') {
+      tone({ t, f: 65, f2: 40, d: 0.9, gain: 0.4 })
+      modal({ t: t + 0.3, f: 784, modes: BELL, gain: 0.16, beat: 3, strike: 0.2, verb: 0.5 })
+      for (let i = 0; i < 12; i++) modal({ t: t + 0.4 + Math.random() * 0.7, f: rnd(2800, 6500), modes: GLASS, gain: 0.03, decay: 0.6, pan: rnd(-0.8, 0.8), verb: 0.4 })
+    } else if (special === 'lucky') coinRain(t + 0.35, 14, 0.6, 0.06)
+    buzz([40, 30, 40, 30, 80])
+  } else if (grade === 1) {
+    stab(t, 587.33, [0, 4, 7], { gain: 0.045, d: 0.4 })
+    stab(t + 0.14, 587.33, [5, 9, 12], { gain: 0.05, d: 0.6 })
+    popper(t + 0.05, 0)
+    glock(t + 0.2, [12, 16, 19, 24], 0.05, 0.09, 0.35)
+    riser(t + 0.1, 0.55, 0.07)
+    buzz([30, 30, 40])
+  } else if (grade === 2) {
+    riser(t, 0.35, 0.05)
+    glock(t + 0.05, [7, 12], 0.07, 0.07, 0.3)
+  } else {
+    // Sad trombone: three falling steps and a long sagging last note with a wobble.
+    const steps = [[233, 226], [220, 213], [208, 201]]
+    steps.forEach(([f, f2], i) => tone({ t: t + i * 0.2, type: 'sawtooth', f, f2, a: 0.03, hold: 0.08, d: 0.1, gain: 0.07, lp: 900, lpq: 2 }))
+    for (let i = 0; i < 6; i++) tone({ t: t + 0.6 + i * 0.09, type: 'sawtooth', f: 196 - i * 1.5 + (i % 2 ? 4 : -4), f2: 194 - i * 1.5, a: 0.02, hold: 0.04, d: 0.06, gain: 0.065 * (1 - i * 0.12), lp: 800, lpq: 2 })
+  }
+}
+// The release of a graded cast, on top of launch(): PERFECT booms, crackles and throws confetti;
+// GREAT a smaller boom and pop; GOOD a light flick; WEAK a limp little "fwip".
+export function castRelease(grade = 2, special = '') {
+  if (!voice(1.6, 4)) return
+  const t = now()
+  if (grade === 0 || special) {
+    tone({ t, f: 110, f2: 32, d: 0.6, gain: 0.45 })
+    burst({ t, noise: 'brown', type: 'lowpass', f: 1400, f2: 160, q: 0.6, a: 0.003, d: 0.55, gain: 0.38 })
+    burst({ t, type: 'highpass', f: 3500, q: 0.6, a: 0.0005, d: 0.02, gain: 0.3 })
+    popper(t + 0.04, -0.5)
+    popper(t + 0.09, 0.5)
+    for (let i = 0; i < 10; i++) modal({ t: t + 0.05 + Math.random() * 0.5, f: rnd(3000, 7000), modes: GLASS, gain: 0.03, decay: 0.5, pan: rnd(-0.8, 0.8), verb: 0.4 })
+    glock(t + 0.06, [24, 19, 16, 12, 16, 19, 24, 31], 0.035, 0.08, 0.35)
+  } else if (grade === 1) {
+    tone({ t, f: 100, f2: 40, d: 0.4, gain: 0.35 })
+    burst({ t, noise: 'brown', type: 'lowpass', f: 1000, f2: 200, q: 0.6, a: 0.003, d: 0.35, gain: 0.25 })
+    popper(t + 0.04, 0)
+    glock(t + 0.05, [19, 16, 12, 19, 24], 0.04, 0.07, 0.3)
+  } else if (grade === 2) {
+    glock(t + 0.04, [12, 19], 0.05, 0.05, 0.25)
+  } else {
+    burst({ t, noise: 'pink', f: 900, f2: 300, q: 1.2, a: 0.01, d: 0.18, gain: 0.12 })
+    tone({ t, type: 'triangle', f: 260, f2: 140, d: 0.25, gain: 0.06, lp: 900 })
+  }
+}
 // The arm pulling back: a rubbery creak stretching upward.
 export function windup() {
   if (!voice(0.5, 2)) return
@@ -700,4 +774,165 @@ export function foodBuy(fx = 0) {
 export function foodEquip(fx = 0) {
   if (!voice(0.5, 2)) return
   glock(now() + 0.04, fx >= 6 ? [7, 12, 19] : [7, 12], 0.05, 0.08, 0.25, A.ui)
+}
+
+// --- Water (the fishing loop) ---------------------------------------------------------------------
+// A splash (k = how big): a wet noise whoosh, a low plunk, a fizz of bubbles, droplets pattering.
+export function splash(k = 1) {
+  if (!voice(1.2, 3)) return
+  const t = now()
+  k = Math.max(0.2, Math.min(1, k))
+  burst({ t, noise: 'pink', type: 'bandpass', f: 1500, f2: 420, q: 0.7, a: 0.004, d: 0.3 + k * 0.35, gain: 0.4 * k })
+  burst({ t, type: 'highpass', f: 3400, q: 0.5, a: 0.002, d: 0.22 + k * 0.1, gain: 0.2 * k })
+  tone({ t, f: 190, f2: 70, d: 0.18, gain: 0.28 * k, lp: 900 })
+  bubbles({ t: t + 0.03, n: COARSE_POINTER ? 8 : 16, dur: 0.45, f0: 300, f1: 1500, gain: 0.1 * k })
+  crinkle({ t: t + 0.18, n: COARSE_POINTER ? 6 : 14, dur: 0.5 * k + 0.2, gain: 0.05 * k, f0: 2500, f1: 7500, width: 0.9 })
+}
+// A nibble on the bobber: a little plop.
+export function plop(k = 0.6) {
+  if (!voice(0.3, 1)) return
+  const t = now()
+  bubble({ t, f: vary(420, 0.12), d: 0.09, gain: 0.3 * k, rise: 1.8 })
+  bubbles({ t: t + 0.02, n: 4, dur: 0.12, f0: 500, f1: 1200, gain: 0.05 * k })
+}
+// The reel: a ratchet of quick clicks (k = how long it runs).
+export function reel(k = 1) {
+  if (!voice(0.5, 2)) return
+  const t = now()
+  const n = Math.round(8 + k * 10)
+  for (let i = 0; i < n; i++) modal({ t: t + i * 0.028, f: vary(2300, 0.05), modes: PLASTIC, gain: 0.05 * (1 - i / n) + 0.02, strike: 0.05 })
+}
+
+// --- Tackle: rods, baits and trails (their power level `fx` runs 0..10 with the rarity) --------------
+// A rod being swung: a tier-scaled power-up under the whoosh. Plain rods only whip; every rarity
+// adds a layer: a rising glock run, a choir swell, a sub boom, a crackle, a final bell + sparkle rain.
+export function rodPower(fx = 0, tier = 0) {
+  if (fx < 1 || !limit('rod-power', 120) || !voice(1.6, 4)) return
+  const t = now()
+  const k = Math.min(1, Math.max(fx / 10, tier / 53))
+  burst({ t, type: 'highpass', f: 2200 + fx * 250, q: 0.7, a: 0.002, d: 0.12 + fx * 0.012, gain: 0.12 + k * 0.1 })
+  if (fx >= 3) tone({ t, f: 90 + fx * 8, f2: 40, d: 0.28 + k * 0.4, gain: 0.18 + k * 0.2, lp: 700 })
+  if (fx >= 4) {
+    tone({ t, type: 'sawtooth', f: 180, f2: 360 + fx * 30, glide: 0.45, a: 0.06, d: 0.55, gain: 0.025 + k * 0.02, lp: 1800, verb: 0.5 })
+    tone({ t, type: 'sawtooth', f: 270, f2: 540 + fx * 40, glide: 0.45, a: 0.06, d: 0.55, gain: 0.02 + k * 0.02, lp: 2000, verb: 0.5 })
+  }
+  if (fx >= 5) crinkle({ t: t + 0.03, n: COARSE_POINTER ? 10 : 22, dur: 0.45, gain: 0.05 + k * 0.03, f0: 2500, f1: 9000, width: 0.8 })
+  if (fx >= 6) modal({ t: t + 0.1, f: 659 * semi(fx - 6), modes: BELL, gain: 0.1 + k * 0.06, beat: 3, strike: 0.12, verb: 0.55 })
+  if (fx >= 7) {
+    tone({ t: t + 0.04, f: 55, f2: 30, d: 0.9, gain: 0.3 })
+    for (let i = 0; i < (COARSE_POINTER ? 6 : 12); i++) modal({ t: t + 0.1 + i * 0.045, f: rnd(2600, 7200), modes: GLASS, gain: 0.03, decay: 0.7, pan: rnd(-0.8, 0.8), verb: 0.5 })
+  }
+  if (fx >= 9) {
+    glock(t + 0.12, [0, 7, 12, 16, 19, 24, 28, 31, 36], 0.045, 0.1, 0.5)
+    popper(t + 0.35, -0.5)
+    popper(t + 0.42, 0.5)
+  }
+}
+// Buying a bait pack: a till, then a fanfare that grows with the bait's rarity, jackpot = slot payout.
+export function baitBuy(fx = 0, jackpot = false) {
+  purchase()
+  if (!voice(2, 4)) return
+  const t = now() + 0.1
+  if (jackpot) {
+    for (let i = 0; i < 14; i++) modal({ t: t + i * 0.05, f: 1500 + (i % 4) * 300, modes: PLASTIC, gain: 0.07, strike: 0.1, pan: rnd(-0.3, 0.3) })
+    glock(t + 0.7, [0, 4, 7, 12, 16, 19, 24, 28, 31], 0.06, 0.16, 0.4, A.ui)
+    coinRain(t + 0.75, COARSE_POINTER ? 14 : 28, 1.1, 0.07)
+    popper(t + 0.85, -0.5)
+    popper(t + 0.95, 0.5)
+    return
+  }
+  glock(t, [0, 5, 9, 12, 17, 21, 24, 29].slice(0, 3 + Math.min(5, fx >> 1)), 0.05, 0.12, 0.35, A.ui)
+  bubbles({ t, n: 6 + fx, dur: 0.3, f0: 400, f1: 1600, gain: 0.07, bus: A.ui })
+  if (fx >= 4) modal({ t: t + 0.06, f: 740, modes: BELL, gain: 0.13, beat: 3, strike: 0.15, verb: 0.4, bus: A.ui })
+  if (fx >= 6) popper(t + 0.12, 0.4)
+  if (fx >= 8) for (let i = 0; i < 10; i++) modal({ t: t + 0.2 + Math.random() * 0.6, f: rnd(2800, 6500), modes: GLASS, gain: 0.025, decay: 0.6, pan: rnd(-0.7, 0.7), verb: 0.4, bus: A.ui })
+}
+// Hooking a bait on / putting it away.
+export function baitEquip(fx = 0, off = false) {
+  if (!voice(0.5, 2)) return
+  const t = now()
+  if (off) {
+    glock(t + 0.03, [12, 5], 0.06, 0.07, 0.2, A.ui)
+    return
+  }
+  bubble({ t, f: 520, d: 0.06, gain: 0.2, rise: 1.5 })
+  glock(t + 0.05, fx >= 5 ? [5, 12, 17] : [5, 12], 0.05, 0.09, 0.3, A.ui)
+}
+// The bait goes on the hook as you cast: a wet "plip" and a charge that grows with its rarity.
+export function baitUse(fx = 0, jackpot = false) {
+  if (!limit('bait-use', 200) || !voice(1.4, 3)) return
+  const t = now()
+  bubble({ t, f: vary(360, 0.08), d: 0.08, gain: 0.25, rise: 1.6 })
+  bubbles({ t: t + 0.02, n: 6, dur: 0.2, f0: 500, f1: 1500, gain: 0.06 })
+  if (fx >= 2) glock(t + 0.06, [7, 12, 16, 19].slice(0, 1 + (fx >> 1)), 0.05, 0.08 + fx * 0.006, 0.4)
+  if (fx >= 4) tone({ t, type: 'sawtooth', f: 140, f2: 420, glide: 0.5, a: 0.05, d: 0.5, gain: 0.03, lp: 1500, verb: 0.5 })
+  if (fx >= 6) for (let i = 0; i < (COARSE_POINTER ? 5 : 10); i++) modal({ t: t + 0.08 + i * 0.05, f: rnd(2800, 6800), modes: GLASS, gain: 0.03, decay: 0.7, pan: rnd(-0.7, 0.7), verb: 0.5 })
+  if (fx >= 8) modal({ t: t + 0.15, f: 880, modes: BELL, gain: 0.14, beat: 3, strike: 0.12, verb: 0.6 })
+  if (jackpot) {
+    for (let i = 0; i < 10; i++) modal({ t: t + i * 0.06, f: 1200 + i * 140, modes: PLASTIC, gain: 0.06, strike: 0.08 })
+    modal({ t: t + 0.7, f: 1568, modes: BELL, gain: 0.2, beat: 3, strike: 0.15, verb: 0.5 })
+  }
+}
+// A trail bought / tried on: a soft sparkle swoosh.
+export function trailBuy(fx = 0) {
+  purchase()
+  if (!voice(1.5, 3)) return
+  const t = now() + 0.1
+  glock(t, [0, 7, 12, 19, 24, 28].slice(0, 3 + Math.min(3, fx >> 1)), 0.05, 0.1, 0.45, A.ui)
+  burst({ t, type: 'highpass', f: 3000, q: 0.6, a: 0.01, d: 0.4, gain: 0.07, bus: A.ui })
+  for (let i = 0; i < (COARSE_POINTER ? 5 : 10); i++) modal({ t: t + 0.1 + Math.random() * 0.5, f: rnd(3000, 7000), modes: GLASS, gain: 0.02, decay: 0.5, pan: rnd(-0.7, 0.7), verb: 0.4, bus: A.ui })
+}
+export function trailTry(fx = 0) {
+  if (!voice(0.6, 2)) return
+  const t = now()
+  burst({ t, type: 'highpass', f: 2600, q: 0.6, a: 0.02, d: 0.25, gain: 0.08, bus: A.ui })
+  glock(t + 0.04, fx >= 5 ? [12, 19, 24] : [12, 19], 0.05, 0.08, 0.35, A.ui)
+}
+
+// --- The animal's-eye view (the bait is in the water) ---------------------------------------------
+// Diving in: a muffled rush, a low swell and a swarm of bubbles, as if the ears went under.
+export function dive() {
+  if (!voice(1.4, 3)) return
+  const t = now()
+  burst({ t, noise: 'pink', type: 'lowpass', f: 2400, f2: 260, q: 0.7, a: 0.01, d: 0.9, gain: 0.35 })
+  tone({ t, f: 140, f2: 48, d: 0.6, gain: 0.3, lp: 600 })
+  bubbles({ t: t + 0.04, n: COARSE_POINTER ? 10 : 22, dur: 0.7, f0: 250, f1: 1400, gain: 0.09, verb: 0.2 })
+  tone({ t: t + 0.1, f: 55, f2: 62, a: 0.5, d: 1.2, gain: 0.1, lp: 300 }) // the water's low hum
+}
+// The animal spots the bait: a sonar ping with a shimmer and a curious rising blip.
+export function sonar() {
+  if (!voice(1.6, 4)) return
+  const t = now()
+  tone({ t, f: 1180, f2: 1160, a: 0.004, d: 1.1, gain: 0.16, verb: 0.55 })
+  tone({ t: t + 0.18, f: 1180, f2: 1160, a: 0.004, d: 0.8, gain: 0.07, verb: 0.55 })
+  tone({ t: t + 0.03, f: 440, f2: 820, glide: 0.18, a: 0.01, d: 0.26, gain: 0.08, lp: 2600 })
+  glock(t + 0.12, [12, 16, 19, 24], 0.06, 0.07, 0.5)
+}
+// A heartbeat (k = 0..1 how worked up it is): two soft thumps, harder as the bait gets close.
+export function heartbeat(k = 0) {
+  if (!voice(0.4, 2)) return
+  const t = now()
+  const g = 0.28 + k * 0.3
+  tone({ t, f: 78, f2: 40, d: 0.16, gain: g, lp: 400 })
+  burst({ t, noise: 'brown', type: 'lowpass', f: 300, q: 0.6, d: 0.12, gain: g * 0.6 })
+  tone({ t: t + 0.15, f: 66, f2: 36, d: 0.2, gain: g * 0.8, lp: 360 })
+  buzz([25, 70, 25])
+}
+// The lunge at the bait: a rising water rush and a tight whoosh of bubbles.
+export function lunge() {
+  if (!voice(0.8, 3)) return
+  const t = now()
+  burst({ t, noise: 'pink', type: 'bandpass', f: 400, f2: 3600, q: 0.8, a: 0.12, d: 0.2, gain: 0.34 })
+  tone({ t, f: 120, f2: 520, glide: 0.25, a: 0.05, d: 0.2, gain: 0.12, lp: 1800 })
+  bubbles({ t, n: COARSE_POINTER ? 6 : 12, dur: 0.25, f0: 500, f1: 2200, gain: 0.07 })
+}
+// The bite lands: a wet chomp, a glass ting and the bait's pop.
+export function chomp() {
+  if (!voice(0.8, 4)) return
+  const t = now()
+  tone({ t, f: 210, f2: 70, d: 0.14, gain: 0.4, lp: 900 })
+  burst({ t, noise: 'brown', type: 'lowpass', f: 1400, f2: 300, q: 0.6, a: 0.002, d: 0.16, gain: 0.35 })
+  bubble({ t: t + 0.02, f: 520, d: 0.08, gain: 0.3, rise: 2 })
+  modal({ t: t + 0.03, f: 1900, modes: GLASS, gain: 0.1, strike: 0.15, verb: 0.3 })
+  buzz([50, 20, 50])
 }

@@ -1,7 +1,8 @@
-// Painted scenery for the Index: one tall picture per lane area (a path through a meadow, a
+// Painted scenery for the Index: one tall picture per river area (the river through a meadow, a
 // red barn and wheat, a willow and a pier on a lake, a desert arch, ice peaks, an autumn tree,
 // a crystal waterfall, a beach sunset, a coral reef, a gate in the clouds, a lava gate, a
 // cosmic portal). Drawn once on a canvas and kept as a data URL.
+import { AREAS } from '../config.js'
 const W = 200
 const H = 360
 const cache = new Map()
@@ -36,7 +37,34 @@ function cloud(x, cx, cy, s, color = 'rgba(255,255,255,0.95)') {
     x.fill()
   }
 }
+// The river winding down the picture, in the area's water colours (AREAS water / waterLine):
+// `color` / `edge` are kept for the banks, the water fills the channel with a few ripples.
+let WATER = null
 function path(x, top, wTop, wBot, color, edge) {
+  if (WATER) {
+    path0(x, top, wTop + 3, wBot + 8, color, null)
+    const g = x.createLinearGradient(0, top, 0, H)
+    g.addColorStop(0, WATER.line)
+    g.addColorStop(0.25, WATER.water)
+    g.addColorStop(1, WATER.water)
+    path0(x, top, wTop, wBot, g, WATER.line)
+    x.strokeStyle = 'rgba(255,255,255,0.55)'
+    x.lineWidth = 1.5
+    for (let i = 0; i < 9; i++) {
+      const k = (i + 1) / 10
+      const y = top + (H - top) * k * k
+      const cx = W / 2 + Math.sin(k * 5.2) * (W * 0.18) * k
+      const w = (wTop + (wBot - wTop) * k) * 0.45
+      x.beginPath()
+      x.moveTo(cx - w, y)
+      x.quadraticCurveTo(cx, y - 3 * k - 1, cx + w, y)
+      x.stroke()
+    }
+    return
+  }
+  path0(x, top, wTop, wBot, color, edge)
+}
+function path0(x, top, wTop, wBot, color, edge) {
   x.fillStyle = color
   x.beginPath()
   x.moveTo(W / 2 - wTop, top)
@@ -475,7 +503,10 @@ export function areaArt(id) {
     c.width = W
     c.height = H
     const x = c.getContext('2d')
+    const area = AREAS.find((r) => r.id === id)
+    WATER = area?.water ? { water: area.water, line: area.waterLine ?? '#ffffff' } : null
     ;(PAINT[id] ?? PAINT.meadow)(x)
+    WATER = null
     cache.set(id, c.toDataURL('image/png'))
   }
   return cache.get(id)

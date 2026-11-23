@@ -118,7 +118,7 @@ export function paintStuds({ a, b = a, size = 512, cells = 2, studs = 4, seam = 
 
 // The cliff face: 16 m wide x 7 m tall at 64 px/m. Grass on top dripping down in
 // half-metre steps, dirt checker below, studs everywhere. Tiles horizontally.
-export function paintCliff({ grass = '#5fd23a', grassAlt = '#4fc22c', dirt = '#8b5a33', dirtAlt = '#7a4b29', w = 1024, h = 448, seed = 11 } = {}) {
+export function paintCliff({ grass = '#5fd23a', grassAlt = '#4fc22c', dirt = '#8c4426', dirtAlt = '#78391f', w = 1024, h = 448, seed = 11 } = {}) {
   return cached(`cliff|${grass}|${dirt}|${w}|${h}|${seed}`, () => {
     const c = canvas(w, h)
     const hc = canvas(w, h)

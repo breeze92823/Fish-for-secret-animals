@@ -114,7 +114,7 @@ export function createAds({ hud, sfx, fx, playerChest, onChange, isBusy, isPause
       text = `+${money(amount)}!`
     } else if (r.id === 'lucky-throw') {
       S.luckyCredits = Math.min(99, (S.luckyCredits ?? 0) + 1)
-      text = 'Free Lucky Throw ready! Step on the band to use it.'
+      text = 'Free Lucky Cast ready! Step on the band to use it.'
     }
     state.save()
     onChange()

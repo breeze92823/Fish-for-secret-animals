@@ -1,8 +1,8 @@
 // Every tunable constant lives here; the rest of src/ holds no theme values.
 
 // --- Identity -------------------------------------------------------------
-export const GAME_SLUG = 'throw-food-for-baddies' // slug registered on bloxity.io
-export const GAME_TITLE = 'Throw Food for Baddies'
+export const GAME_SLUG = 'fish-for-secret-animals' // slug registered on bloxity.io
+export const GAME_TITLE = 'Fish for Secret Animals'
 
 // Forces the Bloxity SDK and avatar CDN to be treated as unavailable (see .env.example).
 export const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
@@ -42,38 +42,70 @@ export const PLAYER_DIMS = { radius: 0.75, height: 1.8 } // capsule the characte
 
 // --- Look ------------------------------------------------------------------
 export const RENDER = { exposure: 1.0 }
-export const FOG = { near: 180, far: 620 }
-// The two lighting moods lighting.js blends between (key N toggles).
+export const FOG = { near: 160, far: 600 }
+// The two lighting moods lighting.js blends between (key N toggles). The default ("day") is the
+// reference look: a twilight sky (deep indigo zenith, violet middle, a red-orange sunset glow and a
+// low sun at the far end of the river, orange-lit cloud streaks, stars and sparkle stars), with a
+// warm key light and a lavender / peach fill so the bricks, grass and water stay bright and
+// saturated. N switches to a deep blue moonlit night.
+//   zenith / mid / horizon: sky gradient; glowColor: the horizon sunset glow; sunColor: the disc;
+//   disc*: where the disc + glow sit; sun*: where the key light comes from; lightColor: its colour;
+//   fog: distance fog colour; cloudLit / cloudDark / clouds: sky cloud streaks; nebula: band
+//   strength; puff / puffGlow / puffGlowK: the 3D puff clouds; stars: star opacity.
 export const TIME_OF_DAY = {
   transition: 2.5, // s to blend day <-> night
   day: {
-    zenith: '#1576f0',
-    horizon: '#a9e2ff',
-    sunColor: '#fff4de',
-    // Sun + hemi + env together keep the pale sand (#eed39c) near its own tan;
-    // much more and ACES washes it (and the props) out to grey-white.
-    sunIntensity: 2.4,
-    sunElevation: 55, // degrees above the horizon
-    sunAzimuth: 35, // degrees, 0 = from +Z
-    hemiSky: '#e4f2ff',
-    hemiGround: '#8fcf63',
-    hemiIntensity: 0.8,
-    envIntensity: 0.45,
+    zenith: '#141c7c',
+    mid: '#4a3296',
+    horizon: '#d8506a',
+    glowColor: '#ff6a24',
+    sunColor: '#ffb45a',
+    discElevation: 4,
+    discAzimuth: 180, // the far (north) end of the river
+    lightColor: '#ffd9bc',
+    sunIntensity: 2.3,
+    sunElevation: 48, // degrees above the horizon
+    sunAzimuth: 30, // degrees, 0 = from +Z (behind the hub camera, so faces stay lit)
+    hemiSky: '#b7b0ff',
+    hemiGround: '#e89a78',
+    hemiIntensity: 1.05,
+    envIntensity: 0.5,
+    fog: '#a8507e',
+    cloudLit: '#ff8a46',
+    cloudDark: '#3b2a72',
+    clouds: 1,
+    nebula: 0.35,
+    puff: '#ffb79a',
+    puffGlow: '#ff8a6a',
+    puffGlowK: 0.45,
     lampIntensity: 0,
-    stars: 0,
-    exposure: 0.95,
+    stars: 0.95,
+    exposure: 1.0,
   },
   night: {
-    zenith: '#050b22',
+    zenith: '#040822',
+    mid: '#0d1648',
     horizon: '#24345e',
-    sunColor: '#9fb4ff', // the moon
-    sunIntensity: 0.55,
+    glowColor: '#28407e',
+    sunColor: '#dfe8ff', // the moon
+    discElevation: 32,
+    discAzimuth: 160,
+    lightColor: '#9fb4ff',
+    sunIntensity: 0.6,
     sunElevation: 38,
     sunAzimuth: -60,
-    hemiSky: '#3a4c80',
-    hemiGround: '#1a1a22',
-    hemiIntensity: 0.35,
-    envIntensity: 0.25,
+    hemiSky: '#4a5c96',
+    hemiGround: '#1e1a2e',
+    hemiIntensity: 0.5,
+    envIntensity: 0.3,
+    fog: '#1c2850',
+    cloudLit: '#5a6aa8',
+    cloudDark: '#141a3a',
+    clouds: 0.6,
+    nebula: 1,
+    puff: '#7a86b8',
+    puffGlow: '#3a4a8a',
+    puffGlowK: 0.3,
     lampIntensity: 30,
     stars: 1,
     exposure: 1.15,
@@ -134,7 +166,7 @@ export const TOUCH = {
 // --- Camera (camera.js) -------------------------------------------------------
 export const CAMERA = {
   fov: 70,
-  near: 0.1,
+  near: 0.3, // depth precision scales with near: 0.1 made faces a few cm apart flicker (z-fight) at range
   far: 1200,
   startPitch: 0.32, // radians above the horizon (low chase cam)
   minPitch: -0.35,
@@ -175,7 +207,7 @@ export const ADS = {
   rewards: [
     { id: 'double-income', placement: 'double-income', name: '2x Income', desc: 'Double money for 10 minutes', icon: '💰', minutes: 10 },
     { id: 'cash-boost', placement: 'cash-boost', name: 'Cash Boost', desc: '10 minutes of income, right now', icon: '💵', seconds: 600, min: 500 },
-    { id: 'lucky-throw', placement: 'lucky-throw', name: 'Free Lucky Throw', desc: '100x luck on your next throw', icon: '🍀' },
+    { id: 'lucky-throw', placement: 'lucky-throw', name: 'Free Lucky Cast', desc: '100x luck on your next cast', icon: '🍀' },
   ],
 }
 
@@ -196,7 +228,7 @@ export const REMOTE = {
 // plaza board ranks (the server sends the top lists as boards[stat]).
 export const LEADERBOARDS = [
   { id: 'best-pull', label: 'Best pull (1 in N)', stat: 'bestOdds', order: 'desc', mode: 'best', format: 'compact', reset: 'none' },
-  { id: 'baddies-caught', label: 'Baddies caught', stat: 'catches', order: 'desc', mode: 'best', format: 'number', reset: 'none' },
+  { id: 'baddies-caught', label: 'Animals caught', stat: 'catches', order: 'desc', mode: 'best', format: 'number', reset: 'none' },
   { id: 'money-per-second', label: 'Money per second', stat: 'income', order: 'desc', mode: 'best', format: 'compact', reset: 'none' },
 ]
 
@@ -312,9 +344,11 @@ export const HUB = {
   tierDepth: [12, 18], // m deep each terrace is, inner to outer
   studTile: 4, // m per ground stud tile (2 x 2 checker cells of 4 x 4 studs)
   road: { z: -16, halfWidth: 2.4, minX: -54, maxX: 54 },
-  // The lane is a sunken canyon: past the throw line its floor drops floorY metres below the hub
-  // (a sheer dirt face under the throw band), so you throw down into it.
-  lane: { halfWidth: 9, start: -30, end: -412, throwLine: -31.5, floorY: -10 },
+  // The lane is a sunken river canyon: past the casting line its banks drop floorY metres below
+  // the hub (a sheer dirt face under the casting band), so you cast down into it. The river
+  // channel runs `river` m either side of the centre line, `depth` m deep; its water surface sits
+  // `water` m below the banks.
+  lane: { halfWidth: 18, start: -30, end: -412, throwLine: -31.5, floorY: -10, river: 12.4, depth: 4.5, water: -0.35 },
   // The themed areas down the lane: filled from AREAS (below) once it exists.
   zones: [],
 }
@@ -348,7 +382,11 @@ export const NET = {
 
 // Points of interest (walk into a ring to open its window).
 export const POI = {
-  foodShop: { x: -6.2, z: 9.2, r: 2.6 },
+  // The shops everyone shares: a market row on the meadow side of the road, one stall opposite each
+  // leaderboard (x = POI.boards), facing south into the meadow; z = the ring in front of each stall.
+  foodShop: { x: -16.4, z: -9.2, r: 2.6 }, // Rods & Bait (RODS tab), nearest the river
+  baitShop: { x: -25.2, z: -9.2, r: 2.6 }, // Rods & Bait on the BAIT tab
+  trailShop: { x: -34, z: -9.2, r: 2.6 },
   padOffset: { x: 5.4, z: -5.2 }, // the Training Bench's upgrade pad, relative to the pen front centre
   gateOffset: { x: 0, z: 0 },
   signOffset: { x: 3.4, z: 0.4 },
@@ -359,13 +397,12 @@ export const POI = {
   friendWall: { x: -48, z: -29.6 },
 }
 
-// Every player owns one unit: their base (pen) + Food Shop + Training Place. POI.foodShop and
-// TRAINING.spot are written for the middle base (PENS.playerIndex); main.js calls placeUnit() once
-// the server has assigned this player a base, which moves both beside that base. Only the local
-// player's own shop and training station are ever built: other players' are not shown.
+// Every player owns one unit: their base (pen) + Training Place. TRAINING.spot is written for the
+// middle base (PENS.playerIndex); main.js calls placeUnit() once the server has assigned this
+// player a base, which moves it beside that base. Only the local player's own training station is
+// built. The Rod / Bait / Trail shops are shared (fixed, by the leaderboards) and never move.
 export function placeUnit(baseIndex) {
   const dx = PENS.xs[baseIndex] - PENS.xs[PENS.playerIndex]
-  POI.foodShop.x += dx
   // The ring must stay on the meadow (the east-most base would push it into the cliff).
   const maxX = HUB.maxX - TRAINING.ringR - 1.2
   TRAINING.spot.x = Math.min(TRAINING.spot.x + dx, maxX)
@@ -401,234 +438,214 @@ export const INDEX_BONUS = 0.05 // +5% income for every area whose Index page is
 
 export const AREAS = [
   {
-    id: 'meadow', name: 'Sunny Meadow', color: '#6fdc3c', alt: '#63d132', banner: ['#7be04a', '#2f8f2a'], text: '#ffffff',
+    id: 'meadow', name: 'Lily Pond', color: '#6fdc3c', alt: '#63d132', banner: ['#7be04a', '#2f8f2a'], water: '#1fc0c8', waterLine: '#a8fbf4', text: '#ffffff',
     cover: ['tree', 'bush', 'flowerBush'], fx: 'petals', fxColors: ['#ffffff', '#ffd6e8', '#fff27a', '#ffb3d9'], dust: '#cfeeb8',
     girls: [
-      { n: 'Daisy', hs: 'bob', hc: '#ffe27a', e: '#4f9a3a', o: 'skirt', t: '#ffffff', b: '#ffd23a', a: '#7be04a', sh: '#ffffff', hat: 'flower', hatC: '#ffffff', hd: 'flower', hdC: '#ffffff' },
-      { n: 'Clover', hs: 'ponytail', hc: '#3e9f3a', e: '#2f7a2f', o: 'overalls', t: '#fff6d8', b: '#5fbf4a', sh: '#8b5a33', hat: 'bow', hatC: '#7be04a' },
-      { n: 'Bunnie', hs: 'twintails', hc: '#fff0f6', h2: '#ffc6dd', e: '#ff6fa8', o: 'dress', t: '#ffc6dd', b: '#ff9ec7', a: '#ffffff', sh: '#ffffff', hat: 'bunnyEars', hatC: '#ffffff', tl: 'bunny', tlC: '#ffffff' },
-      { n: 'Ladybell', hs: 'bob', hc: '#2a1a1a', e: '#e03a3a', o: 'dress', t: '#e83a3a', b: '#e83a3a', a: '#1a1a1a', sh: '#1a1a1a', hat: 'antenna', hatC: '#1a1a1a', w: 'fairy', wC: '#ff8a8a' },
-      { n: 'Honey', hs: 'buns', hc: '#ffcc33', h2: '#3a2414', e: '#ffaa00', o: 'skirt', t: '#ffd23a', b: '#2a2020', a: '#ffd23a', sh: '#2a2020', hat: 'antenna', hatC: '#2a2020', w: 'fairy', wC: '#e8f7ff', hd: 'honey', hdC: '#ffb020' },
-      { n: 'Poppy', hs: 'wavy', hc: '#ff5a3a', e: '#3a7a3a', o: 'dress', t: '#ffffff', b: '#ff5a3a', a: '#ffffff', sh: '#ff5a3a', hat: 'sunHat', hatC: '#fff2c8', hd: 'flower', hdC: '#ff3a3a' },
-      { n: 'Fawnie', hs: 'long', hc: '#b8743a', h2: '#e8c08a', e: '#6a3b1e', o: 'skirt', t: '#f0e0c0', b: '#8a5a30', a: '#ffffff', sh: '#6a3b1e', hat: 'antlers', hatC: '#c89a6a', tl: 'bunny', tlC: '#f0e0c0' },
-      { n: 'Flutter', hs: 'twintails', hc: '#b07cff', h2: '#ff9bf0', e: '#7a4bff', o: 'dress', t: '#e6d8ff', b: '#b07cff', a: '#ffffff', sh: '#b07cff', hat: 'antenna', hatC: '#2a1a3a', w: 'butterfly', wC: '#ff9bf0' },
-      { n: 'Sunny', hs: 'hime', hc: '#ffb02a', h2: '#ffe680', e: '#ff7a00', o: 'gown', t: '#fff2a0', b: '#ffd23a', a: '#ffffff', sh: '#ffd23a', hat: 'sunflower', hatC: '#ffd23a', w: 'fairy', wC: '#fff6a0', hd: 'wand', hdC: '#ffd23a' },
-      { n: 'Primrose', hs: 'long', hc: '#ffffff', h2: '#ff9bd2', e: '#ff4fa8', o: 'gown', t: '#fff0fa', b: '#ffb3d9', a: '#ffd23a', sh: '#ffffff', hat: 'leafCrown', hatC: '#ff9bd2', w: 'butterfly', wC: '#ffd6f0', hd: 'staff', hdC: '#ff9bd2' },
+      { n: 'Duck', k: 'duck', c: '#b8461e', c2: '#2f9a3a', c3: '#ffc21f' },
+      { n: 'Pond Frog', k: 'frog', c: '#5fc23a', c2: '#e8f7a0', c3: '#2f7a2a' },
+      { n: 'Goldfish', k: 'fish', c: '#ff8a1a', c2: '#ffd23a', c3: '#ff5a1a' },
+      { n: 'Mud Turtle', k: 'turtle', c: '#6a8a3a', c2: '#9acd5a', c3: '#4a5a2a' },
+      { n: 'Duckling', k: 'duck', c: '#ffe14a', c2: '#ffe14a', c3: '#ff8a1a' },
+      { n: 'Koi', k: 'fish', c: '#ffffff', c2: '#ff5a1a', c3: '#ff8a5a', x: 'spots' },
+      { n: 'Lily Toad', k: 'frog', c: '#ff9ad8', c2: '#fff0f8', c3: '#ff5fa8', x: 'spots' },
+      { n: 'Swan', k: 'swan', c: '#ffffff', c2: '#f4f4f8', c3: '#ff8a1a' },
+      { n: 'Golden Carp', k: 'fish', c: '#ffc21f', c2: '#fff2a0', c3: '#ff8a1a', x: 'crown' },
+      { n: 'Pond Spirit', k: 'axolotl', c: '#c8f0ff', c2: '#ffffff', c3: '#ff9ad8', x: 'halo glow' },
     ],
   },
   {
-    id: 'farm', name: 'Harvest Farm', color: '#e8cf6a', alt: '#dcc25c', banner: ['#ff8a3a', '#a83a1a'], text: '#fff6d8',
+    id: 'farm', name: 'Farm Creek', color: '#e8cf6a', alt: '#dcc25c', banner: ['#ff8a3a', '#a83a1a'], water: '#38c8c0', waterLine: '#c8fff0', text: '#fff6d8',
     cover: ['hay', 'crate', 'corn'], fx: 'wheat', fxColors: ['#ffd85a', '#f0c040', '#fff2a0'], dust: '#f2e0a0',
     girls: [
-      { n: 'Hayley', hs: 'braid', hc: '#c96a2a', e: '#3a6a2a', o: 'overalls', t: '#ff5a5a', b: '#3f6fd0', sh: '#6b3f22', hat: 'strawHat', hatC: '#f2d27a', hd: 'pitchfork', hdC: '#8b5a33' },
-      { n: 'Moomoo', hs: 'bob', hc: '#ffffff', h2: '#1a1a1a', e: '#6a3b1e', o: 'dress', t: '#ffffff', b: '#1a1a1a', a: '#ff9ec7', sh: '#1a1a1a', hat: 'cowEars', hatC: '#ffffff', nk: 'bell', nkC: '#ffd23a' },
-      { n: 'Chickie', hs: 'buns', hc: '#ffe14a', e: '#2a2a2a', o: 'skirt', t: '#fff6a0', b: '#ffd23a', a: '#ff8a2a', sh: '#ff8a2a', hat: 'comb', hatC: '#ff3a3a', hd: 'basket', hdC: '#fff6e0' },
-      { n: 'Cinna', hs: 'ponytail', hc: '#8b3a1a', e: '#3a8a3a', o: 'dress', t: '#fff0d8', b: '#e83a3a', a: '#ffffff', sh: '#8b3a1a', hat: 'bandana', hatC: '#e83a3a', hd: 'basket', hdC: '#e83a3a' },
-      { n: 'Wooly', hs: 'fluffy', hc: '#fff8ee', e: '#6a5040', o: 'skirt', t: '#fff8ee', b: '#c9a07a', a: '#ffffff', sh: '#5a4030', hat: 'ramHorns', hatC: '#c9a07a', nk: 'bell', nkC: '#ffd23a' },
-      { n: 'Cornelia', hs: 'long', hc: '#ffd23a', h2: '#fff6a0', e: '#3aa04a', o: 'overalls', t: '#ffffff', b: '#5fbf4a', sh: '#8b5a33', hat: 'strawHat', hatC: '#f2d27a', hd: 'flower', hdC: '#ffd23a' },
-      { n: 'Beatrix', hs: 'sidetail', hc: '#3a2414', e: '#ffaa00', o: 'pants', t: '#fff8e0', b: '#fff8e0', a: '#ffd23a', sh: '#3a2414', hat: 'sunHat', hatC: '#fff8e0', hd: 'honey', hdC: '#ffb020' },
-      { n: 'Scarlett', hs: 'curly', hc: '#e8b04a', e: '#ff8a00', o: 'overalls', t: '#e8823a', b: '#6a5aa0', a: '#e8c64a', sh: '#5a3a1a', hat: 'witch', hatC: '#8b6a3a', hd: 'pitchfork', hdC: '#8b5a33' },
-      { n: 'Goldie Dawn', hs: 'wavy', hc: '#ffb02a', h2: '#ff5a3a', e: '#ff5a1a', o: 'gown', t: '#fff0c0', b: '#ff8a2a', a: '#ffd23a', sh: '#ff8a2a', hat: 'crown', hatC: '#ffd23a', w: 'angel', wC: '#ffcf7a', hd: 'staff', hdC: '#ffd23a' },
-      { n: 'Harvesta', hs: 'hime', hc: '#ffd23a', h2: '#ffffff', e: '#ffd23a', o: 'gown', t: '#fff2c0', b: '#e8b04a', a: '#ffffff', sh: '#ffd23a', hat: 'leafCrown', hatC: '#ffd23a', w: 'angel', wC: '#ffe680', hd: 'staff', hdC: '#ffd23a', glow: true },
+      { n: 'Brown Duck', k: 'duck', c: '#8b5a33', c2: '#6b4226', c3: '#ffb02a' },
+      { n: 'Bullfrog', k: 'frog', c: '#6a8a2a', c2: '#e8e0a0', c3: '#3a4a1a' },
+      { n: 'Catfish', k: 'fish', c: '#7a6a5a', c2: '#c8b8a0', c3: '#4a3a2a', x: 'whiskers' },
+      { n: 'Snapper', k: 'turtle', c: '#5a4a2a', c2: '#8a7a4a', c3: '#3a2a1a', x: 'spikes' },
+      { n: 'Goose', k: 'swan', c: '#c8ccd4', c2: '#ffffff', c3: '#ff8a1a' },
+      { n: 'Trout', k: 'fish', c: '#8ab06a', c2: '#ff9a9a', c3: '#5a7a3a', x: 'spots' },
+      { n: 'Hay Otter', k: 'otter', c: '#b8743a', c2: '#f0d8a8', c3: '#5a3a1a', x: 'straw' },
+      { n: 'Sunny Duck', k: 'duck', c: '#ffb02a', c2: '#ffd23a', c3: '#ff5a1a' },
+      { n: 'Harvest Toad', k: 'frog', c: '#e8a83a', c2: '#fff2a0', c3: '#8a5a1a', x: 'crown' },
+      { n: 'Golden Goose', k: 'swan', c: '#ffd23a', c2: '#fff2a0', c3: '#ff8a1a', x: 'crown glow' },
     ],
   },
   {
-    id: 'lake', name: 'Willow Lake', color: '#8fe0c0', alt: '#80d4b2', banner: ['#4fc8ff', '#1a6aa0'], text: '#ffffff',
+    id: 'lake', name: 'Willow Lake', color: '#8fe0c0', alt: '#80d4b2', banner: ['#4fc8ff', '#1a6aa0'], water: '#24b8e0', waterLine: '#c8f4ff', text: '#ffffff',
     cover: ['willow', 'reeds', 'lilyRock'], fx: 'fireflies', fxColors: ['#e8ff7a', '#b8ff6a', '#fff6a0'], dust: '#c8f0e0',
     girls: [
-      { n: 'Reeda', hs: 'bob', hc: '#5a8a3a', e: '#2a8aa0', o: 'skirt', t: '#e0f8ff', b: '#3fa6c0', a: '#ffffff', sh: '#3fa6c0', hat: 'sunHat', hatC: '#ffffff', hd: 'rod', hdC: '#8b5a33' },
-      { n: 'Froggy', hs: 'bob', hc: '#7be04a', e: '#1a7a2a', o: 'pants', t: '#ffd23a', b: '#7be04a', a: '#ffd23a', sh: '#ffd23a', hat: 'frogHood', hatC: '#7be04a', hd: 'parasol', hdC: '#7be04a' },
-      { n: 'Duckie', hs: 'buns', hc: '#ffe14a', e: '#2a6aa0', o: 'dress', t: '#ffffff', b: '#ffe14a', a: '#ff8a2a', sh: '#ff8a2a', hat: 'bow', hatC: '#ff8a2a' },
-      { n: 'Lily', hs: 'long', hc: '#ffb3d9', e: '#3aa06a', o: 'dress', t: '#ffd6ea', b: '#5fbf6a', a: '#ffffff', sh: '#5fbf6a', hat: 'flower', hatC: '#ff8ac0', hd: 'flower', hdC: '#ff8ac0' },
-      { n: 'Rowan', hs: 'ponytail', hc: '#3a2414', e: '#3a6aa0', o: 'shorts', t: '#ffffff', b: '#2a4a8a', a: '#e83a3a', sh: '#ffffff', hat: 'beret', hatC: '#ffffff', nk: 'sailor', nkC: '#2a4a8a' },
-      { n: 'Libelle', hs: 'pixie', hc: '#3ad0c0', e: '#3a6aff', o: 'skirt', t: '#2a8aa0', b: '#3ad0c0', a: '#ffffff', sh: '#2a8aa0', ew: 'goggles', ewC: '#3ad0c0', w: 'fairy', wC: '#a0f0ff' },
-      { n: 'Willowa', hs: 'long', hc: '#8ad04a', h2: '#c8f07a', e: '#5aa03a', o: 'gown', t: '#a0d070', b: '#6a9a3a', a: '#ffffff', sh: '#6a9a3a', hat: 'leafCrown', hatC: '#5fbf4a', hd: 'staff', hdC: '#8b5a33' },
-      { n: 'Koi', hs: 'sidetail', hc: '#ff7a3a', h2: '#ffffff', e: '#ff5a1a', o: 'kimono', t: '#ffffff', b: '#ff7a3a', a: '#e83a3a', sh: '#e83a3a', hat: 'flower', hatC: '#ff3a3a', hd: 'parasol', hdC: '#ff7a3a' },
-      { n: 'Swanna', hs: 'hime', hc: '#ffffff', h2: '#e0e8ff', e: '#3a5aa0', o: 'gown', t: '#ffffff', b: '#e8f0ff', a: '#ffd23a', sh: '#ffffff', hat: 'tiara', hatC: '#ffd23a', w: 'angel', wC: '#ffffff' },
-      { n: 'Selune', hs: 'long', hc: '#c8d8ff', h2: '#ffffff', e: '#6a7aff', o: 'gown', t: '#2a2a6a', b: '#c8d8ff', a: '#ffffff', sh: '#2a2a6a', hat: 'tiara', hatC: '#c8d8ff', w: 'angel', wC: '#c8d8ff', hd: 'lantern', hdC: '#fff6a0', glow: true },
+      { n: 'Lake Otter', k: 'otter', c: '#7a4a2a', c2: '#d8b890', c3: '#3a2414' },
+      { n: 'Pike', k: 'fish', c: '#5a8a3a', c2: '#e8f0c0', c3: '#3a5a2a', x: 'stripes' },
+      { n: 'Spotted Frog', k: 'frog', c: '#3ab06a', c2: '#e8ffd8', c3: '#1a5a3a', x: 'spots' },
+      { n: 'Blue Duck', k: 'duck', c: '#3a6ad0', c2: '#2a3a8a', c3: '#ffc21f' },
+      { n: 'Lake Turtle', k: 'turtle', c: '#2a8a6a', c2: '#a0e0a0', c3: '#1a4a3a' },
+      { n: 'Axolotl', k: 'axolotl', c: '#ffb3d9', c2: '#fff0f8', c3: '#ff5fa8' },
+      { n: 'Willow Seahorse', k: 'seahorse', c: '#8ad04a', c2: '#e8ffc0', c3: '#4a8a2a' },
+      { n: 'Silver Swan', k: 'swan', c: '#d8e0f0', c2: '#ffffff', c3: '#3a3a4a', x: 'crown' },
+      { n: 'Moon Koi', k: 'fish', c: '#e8f0ff', c2: '#8ab0ff', c3: '#c8d8ff', x: 'spots glow' },
+      { n: 'Lake Guardian', k: 'otter', c: '#3a6ad0', c2: '#c8e0ff', c3: '#ffd23a', x: 'crown halo glow' },
     ],
   },
   {
-    id: 'desert', name: 'Desert Canyon', color: '#f2d28c', alt: '#e8c57a', banner: ['#ffb84a', '#a85a1a'], text: '#fff6d8',
+    id: 'desert', name: 'Desert Oasis', color: '#f2d28c', alt: '#e8c57a', banner: ['#ffb84a', '#a85a1a'], water: '#30d0c0', waterLine: '#e0fff4', text: '#fff6d8',
     cover: ['cactus', 'mesaRock', 'deadBush'], fx: 'sand', fxColors: ['#f2d28c', '#e8b870', '#fff0c0'], dust: '#f2d8a0',
     girls: [
-      { n: 'Dusty', hs: 'ponytail', hc: '#8b5a33', e: '#3a6aa0', o: 'shorts', t: '#ffd8a0', b: '#4a6aa0', a: '#ffffff', sh: '#8b5a33', hat: 'cowboy', hatC: '#c98a4a', nk: 'scarf', nkC: '#e83a3a' },
-      { n: 'Prickle', hs: 'buns', hc: '#5fa04a', e: '#2a7a2a', o: 'dress', t: '#7be04a', b: '#5fa04a', a: '#ffffff', sh: '#5fa04a', hat: 'flower', hatC: '#ff5fa8' },
-      { n: 'Fennie', hs: 'bob', hc: '#f2c88a', e: '#ffaa00', o: 'skirt', t: '#ffffff', b: '#f2c88a', a: '#e8823a', sh: '#e8823a', hat: 'foxEars', hatC: '#f2c88a', tl: 'fox', tlC: '#f2c88a' },
-      { n: 'Scorpia', hs: 'sidetail', hc: '#2a1a1a', h2: '#e83a3a', e: '#e83a3a', o: 'pants', t: '#2a1a1a', b: '#8a2a2a', a: '#e83a3a', sh: '#2a1a1a', hat: 'bandana', hatC: '#2a1a1a', tl: 'devil', tlC: '#8a2a2a' },
-      { n: 'Sahara', hs: 'long', hc: '#2a1a10', e: '#2a8a8a', o: 'gown', t: '#f2e0b0', b: '#e8c070', a: '#ffd23a', sh: '#e8c070', hat: 'veil', hatC: '#fff2d0', nk: 'pendant', nkC: '#3ad0c0' },
-      { n: 'Oasia', hs: 'wavy', hc: '#3ad0c0', e: '#2aa0a0', o: 'dress', t: '#ffffff', b: '#3ad0c0', a: '#ffd23a', sh: '#ffffff', hat: 'flower', hatC: '#ffffff', hd: 'parasol', hdC: '#ffe14a' },
-      { n: 'Indie', hs: 'braid', hc: '#6a3a1a', e: '#4a8a3a', o: 'shorts', t: '#e8d8b0', b: '#8b6a3a', a: '#5a3a1a', sh: '#5a3a1a', hat: 'sunHat', hatC: '#c8a870', ew: 'goggles', ewC: '#8b6a3a', hd: 'book', hdC: '#c8a870' },
-      { n: 'Mirage', hs: 'hime', hc: '#b07cff', h2: '#ff9bf0', e: '#ff7ad9', o: 'gown', t: '#ffe0f8', b: '#b07cff', a: '#ffd23a', sh: '#b07cff', hat: 'veil', hatC: '#ff9bf0', nk: 'pendant', nkC: '#ffd23a' },
-      { n: 'Solara', hs: 'wavy', hc: '#ffcc33', h2: '#ffffff', e: '#ff8a00', o: 'gown', t: '#ffffff', b: '#ffcc33', a: '#3a5aa0', sh: '#ffd23a', hat: 'crown', hatC: '#ffd23a', nk: 'collar', nkC: '#ffd23a', w: 'angel', wC: '#ffd23a', hd: 'staff', hdC: '#ffd23a' },
-      { n: 'Nefira', hs: 'hime', hc: '#1a1a2a', h2: '#ffd23a', e: '#3ad0ff', o: 'gown', t: '#ffffff', b: '#ffd23a', a: '#3a5aff', sh: '#ffd23a', hat: 'pharaoh', hatC: '#ffd23a', nk: 'collar', nkC: '#3a5aff', hd: 'staff', hdC: '#ffd23a', glow: true },
+      { n: 'Sand Turtle', k: 'turtle', c: '#d8b070', c2: '#f2d8a0', c3: '#8a6a3a' },
+      { n: 'Oasis Frog', k: 'frog', c: '#e8c84a', c2: '#fff6c0', c3: '#8a6a1a' },
+      { n: 'Desert Crab', k: 'crab', c: '#e8823a', c2: '#ffd8a0', c3: '#a84a1a' },
+      { n: 'Mirage Fish', k: 'fish', c: '#3ad0c0', c2: '#e0fff8', c3: '#ffd23a' },
+      { n: 'Sand Croc', k: 'croc', c: '#c8a060', c2: '#f2e0b0', c3: '#6a4a2a' },
+      { n: 'Sun Axolotl', k: 'axolotl', c: '#ffd23a', c2: '#fff6c0', c3: '#ff8a1a' },
+      { n: 'Scarab Crab', k: 'crab', c: '#2a6ad0', c2: '#3ad0c0', c3: '#ffd23a', x: 'shiny' },
+      { n: 'Oasis Swan', k: 'swan', c: '#3ad0c0', c2: '#e0fff8', c3: '#ffd23a' },
+      { n: 'Mirage Seahorse', k: 'seahorse', c: '#ff9a3a', c2: '#ffe0a0', c3: '#ff5a1a', x: 'glow' },
+      { n: 'Pharaoh Croc', k: 'croc', c: '#ffd23a', c2: '#2a6ad0', c3: '#ffffff', x: 'crown glow' },
     ],
   },
   {
-    id: 'snow', name: 'Frost Peaks', color: '#f4fbff', alt: '#e2f0fa', banner: ['#9fe0ff', '#3a7ad0'], text: '#ffffff',
+    id: 'snow', name: 'Frozen River', color: '#f4fbff', alt: '#e2f0fa', banner: ['#9fe0ff', '#3a7ad0'], water: '#7ad8f0', waterLine: '#ffffff', text: '#ffffff',
     cover: ['pine', 'snowMound', 'iceBlock'], fx: 'snow', fxColors: ['#ffffff', '#e8f6ff', '#c8ecff'], dust: '#ffffff',
     girls: [
-      { n: 'Flurry', hs: 'bob', hc: '#ffffff', h2: '#bfeaff', e: '#4fa8ff', o: 'pants', t: '#ff9ec7', b: '#ffffff', a: '#ffffff', sh: '#ff9ec7', hat: 'earmuffs', hatC: '#ff9ec7', nk: 'scarf', nkC: '#ff5f8a' },
-      { n: 'Skye', hs: 'ponytail', hc: '#ffd23a', e: '#3a6aff', o: 'pants', t: '#3a8aff', b: '#2a2a4a', a: '#ffffff', sh: '#2a2a4a', hat: 'beanie', hatC: '#ff5a3a', ew: 'goggles', ewC: '#ff8a2a' },
-      { n: 'Pengi', hs: 'bob', hc: '#1a1a2a', e: '#3a3a6a', o: 'dress', t: '#ffffff', b: '#1a1a2a', a: '#ffaa00', sh: '#ffaa00', hat: 'beanie', hatC: '#1a1a2a', nk: 'scarf', nkC: '#ffd23a' },
-      { n: 'Glissa', hs: 'long', hc: '#c8a0ff', e: '#7a4bff', o: 'skirt', t: '#e6e0ff', b: '#b8a0ff', a: '#ffffff', sh: '#ffffff', hat: 'earmuffs', hatC: '#ffffff' },
-      { n: 'Yetina', hs: 'fluffy', hc: '#e8f4ff', e: '#3ab0ff', o: 'pants', t: '#e8f4ff', b: '#c8dcf0', a: '#ffffff', sh: '#c8dcf0', hat: 'bearHood', hatC: '#f0f8ff' },
-      { n: 'Polara', hs: 'hime', hc: '#ffffff', h2: '#d8f0ff', e: '#4ad0ff', o: 'dress', t: '#ffffff', b: '#bfe6ff', a: '#ffffff', sh: '#bfe6ff', hat: 'foxEars', hatC: '#ffffff', tl: 'fox', tlC: '#ffffff' },
-      { n: 'Crystelle', hs: 'twintails', hc: '#bfeaff', h2: '#ffffff', e: '#3ab0ff', o: 'dress', t: '#e6f7ff', b: '#7fd0ff', a: '#ffffff', sh: '#ffffff', w: 'fairy', wC: '#bfeaff', hd: 'wand', hdC: '#bfeaff' },
-      { n: 'Borea', hs: 'wavy', hc: '#5affc8', h2: '#b07cff', e: '#5affc8', o: 'gown', t: '#2a3a6a', b: '#5affc8', a: '#b07cff', sh: '#2a3a6a', hat: 'starClip', hatC: '#b07cff', w: 'fairy', wC: '#8affe0' },
-      { n: 'Glacia', hs: 'hime', hc: '#e0f6ff', h2: '#7fd0ff', e: '#4fc8ff', o: 'gown', t: '#e6f7ff', b: '#7fd0ff', a: '#ffffff', sh: '#ffffff', hat: 'crown', hatC: '#bfeaff', nk: 'pendant', nkC: '#4fc8ff', w: 'crystal', wC: '#bfeaff', hd: 'staff', hdC: '#bfeaff' },
-      { n: 'Niveria', hs: 'long', hc: '#ffffff', h2: '#a0e8ff', e: '#a0e8ff', o: 'gown', t: '#ffffff', b: '#e0f6ff', a: '#a0e8ff', sh: '#ffffff', hat: 'tiara', hatC: '#a0e8ff', w: 'crystal', wC: '#e0f8ff', hd: 'staff', hdC: '#a0e8ff', glow: true },
+      { n: 'Penguin', k: 'penguin', c: '#2a2a3a', c2: '#ffffff', c3: '#ffb02a' },
+      { n: 'Seal', k: 'seal', c: '#9aa2ae', c2: '#d8dde6', c3: '#3a3a4a' },
+      { n: 'Ice Fish', k: 'fish', c: '#bfeaff', c2: '#ffffff', c3: '#7ac8f2' },
+      { n: 'Snow Duck', k: 'duck', c: '#ffffff', c2: '#e8f4ff', c3: '#ffb02a' },
+      { n: 'Walrus', k: 'seal', c: '#a8744a', c2: '#d8a878', c3: '#ffffff', x: 'tusks' },
+      { n: 'Frost Turtle', k: 'turtle', c: '#7ac8f2', c2: '#e0f4ff', c3: '#3a8ad0', x: 'spikes' },
+      { n: 'Polar Otter', k: 'otter', c: '#f4f8ff', c2: '#ffffff', c3: '#3a4a5a' },
+      { n: 'Narwhal', k: 'whale', c: '#8a9ab8', c2: '#e0e8f4', c3: '#fff6e0', x: 'horn' },
+      { n: 'Emperor Penguin', k: 'penguin', c: '#1a2a4a', c2: '#ffffff', c3: '#ffd23a', x: 'crown' },
+      { n: 'Frost Spirit', k: 'jelly', c: '#bfeaff', c2: '#ffffff', c3: '#7ae8ff', x: 'halo glow' },
     ],
   },
   {
-    id: 'autumn', name: 'Autumn Grove', color: '#f0a24a', alt: '#e6923c', banner: ['#ff8a3a', '#8a2a1a'], text: '#fff0d8',
+    id: 'autumn', name: 'Maple Stream', color: '#f0a24a', alt: '#e6923c', banner: ['#ff8a3a', '#8a2a1a'], water: '#3ab0c8', waterLine: '#ffe8c8', text: '#fff0d8',
     cover: ['autumnTree', 'pumpkin', 'redBush'], fx: 'leaves', fxColors: ['#ff8a2a', '#e8502a', '#ffc23a', '#c8401a'], dust: '#f0c890',
     girls: [
-      { n: 'Maple', hs: 'bob', hc: '#c84a1a', e: '#6a3b1e', o: 'skirt', t: '#ffe0b0', b: '#c84a1a', a: '#ffffff', sh: '#6a3b1e', hat: 'beret', hatC: '#8a2a1a', nk: 'scarf', nkC: '#e8823a' },
-      { n: 'Nutmeg', hs: 'buns', hc: '#8b5a33', e: '#5a3a1a', o: 'dress', t: '#e8c890', b: '#8b5a33', a: '#ffffff', sh: '#5a3a1a', hat: 'beret', hatC: '#6a3a1a', tl: 'squirrel', tlC: '#b8743a', hd: 'basket', hdC: '#c8a060' },
-      { n: 'Patchy', hs: 'curly', hc: '#ff8a2a', e: '#3a8a2a', o: 'overalls', t: '#3a2a2a', b: '#ff8a2a', sh: '#3a2a2a', hat: 'witch', hatC: '#2a2a3a', hd: 'lantern', hdC: '#ff8a2a' },
-      { n: 'Shroomi', hs: 'bob', hc: '#fff0e0', e: '#e83a3a', o: 'dress', t: '#ffffff', b: '#e83a3a', a: '#ffffff', sh: '#e83a3a', hat: 'mushroom', hatC: '#e83a3a' },
-      { n: 'Owlivia', hs: 'wavy', hc: '#8b6a4a', h2: '#f0e0c0', e: '#ffaa00', o: 'skirt', t: '#f0e0c0', b: '#6a4a2a', a: '#ffffff', sh: '#6a4a2a', hat: 'catEars', hatC: '#8b6a4a', ew: 'glasses', ewC: '#3a2414', hd: 'book', hdC: '#8a2a1a' },
-      { n: 'Cider', hs: 'ponytail', hc: '#e8b04a', e: '#8a3a1a', o: 'pants', t: '#c84a1a', b: '#3a3a5a', a: '#ffffff', sh: '#5a3a1a', hat: 'beanie', hatC: '#e8823a', nk: 'scarf', nkC: '#ffd23a' },
-      { n: 'Hazel', hs: 'long', hc: '#6a2a8a', h2: '#ff8a2a', e: '#ff8a2a', o: 'dress', t: '#3a2a4a', b: '#6a2a8a', a: '#ff8a2a', sh: '#3a2a4a', hat: 'witch', hatC: '#3a2a4a', hd: 'broom', hdC: '#8b5a33' },
-      { n: 'Kohana', hs: 'hime', hc: '#ff9a3a', h2: '#ffffff', e: '#ffcc33', o: 'kimono', t: '#ffffff', b: '#e83a3a', a: '#ffd23a', sh: '#e83a3a', hat: 'foxEars', hatC: '#ff9a3a', tl: 'kitsune', tlC: '#ff9a3a' },
-      { n: 'Mabon', hs: 'wavy', hc: '#e8823a', h2: '#ffd23a', e: '#ffd23a', o: 'gown', t: '#6a2a1a', b: '#c84a1a', a: '#ffd23a', sh: '#6a2a1a', hat: 'leafCrown', hatC: '#e8823a', w: 'butterfly', wC: '#ff8a2a', hd: 'staff', hdC: '#8b5a33' },
-      { n: 'Autumna', hs: 'long', hc: '#ff5a1a', h2: '#ffd23a', e: '#ffcc33', o: 'gown', t: '#ffe0b0', b: '#ff7a2a', a: '#ffd23a', sh: '#ff7a2a', hat: 'crown', hatC: '#ffd23a', w: 'butterfly', wC: '#ffaa33', glow: true },
+      { n: 'Maple Duck', k: 'duck', c: '#e8823a', c2: '#a83a1a', c3: '#ffd23a' },
+      { n: 'Acorn Turtle', k: 'turtle', c: '#8a5a2a', c2: '#d8a868', c3: '#5a3a1a' },
+      { n: 'Leaf Frog', k: 'frog', c: '#ff8a2a', c2: '#ffe0a0', c3: '#a83a1a' },
+      { n: 'Salmon', k: 'fish', c: '#ff8a6a', c2: '#ffd8c8', c3: '#c84a3a' },
+      { n: 'Fox Otter', k: 'otter', c: '#ff7a2a', c2: '#ffffff', c3: '#3a2414' },
+      { n: 'Pumpkin Crab', k: 'crab', c: '#ff8a1a', c2: '#ffd08a', c3: '#3a8a2a' },
+      { n: 'Bronze Carp', k: 'fish', c: '#c87a3a', c2: '#f0c08a', c3: '#8a4a1a', x: 'shiny' },
+      { n: 'Autumn Swan', k: 'swan', c: '#ffd8a0', c2: '#ffffff', c3: '#c84a1a', x: 'crown' },
+      { n: 'Harvest Seahorse', k: 'seahorse', c: '#ffb02a', c2: '#fff2a0', c3: '#c84a1a', x: 'glow' },
+      { n: 'Ember Koi', k: 'fish', c: '#ff5a1a', c2: '#ffd23a', c3: '#ffffff', x: 'spots crown glow' },
     ],
   },
   {
-    id: 'crystal', name: 'Crystal Falls', color: '#9fe8ff', alt: '#8adcf5', banner: ['#7ae8ff', '#3a5ad0'], text: '#ffffff',
+    id: 'crystal', name: 'Crystal Falls', color: '#9fe8ff', alt: '#8adcf5', banner: ['#7ae8ff', '#3a5ad0'], water: '#5ad8ff', waterLine: '#ffffff', text: '#ffffff',
     cover: ['crystals', 'blueRock', 'crystals'], fx: 'gems', fxColors: ['#7ae8ff', '#c8a0ff', '#ff9bd2', '#ffffff'], dust: '#d8f6ff',
     girls: [
-      { n: 'Quartzy', hs: 'bob', hc: '#ffc8e8', e: '#ff5fa8', o: 'skirt', t: '#ffffff', b: '#ffc8e8', a: '#ff9bd2', sh: '#ff9bd2', hat: 'starClip', hatC: '#ff9bd2', hd: 'gem', hdC: '#ff9bd2' },
-      { n: 'Pickette', hs: 'ponytail', hc: '#3a2a1a', e: '#3ab0ff', o: 'overalls', t: '#e8e8f0', b: '#3a5a8a', sh: '#3a2a1a', hat: 'minerHat', hatC: '#ffd23a', hd: 'lantern', hdC: '#7ae8ff' },
-      { n: 'Amethia', hs: 'wavy', hc: '#9a5aff', e: '#b07cff', o: 'dress', t: '#e0d0ff', b: '#9a5aff', a: '#ffffff', sh: '#9a5aff', hat: 'tiara', hatC: '#c8a0ff', nk: 'pendant', nkC: '#9a5aff' },
-      { n: 'Sapphira', hs: 'hime', hc: '#2a5aff', e: '#3a8aff', o: 'gown', t: '#e0e8ff', b: '#2a5aff', a: '#ffffff', sh: '#2a5aff', hat: 'tiara', hatC: '#3a8aff' },
-      { n: 'Emeralda', hs: 'sidetail', hc: '#2ad06a', e: '#2ad06a', o: 'dress', t: '#e0ffe8', b: '#1aa04a', a: '#ffffff', sh: '#1aa04a', hat: 'starClip', hatC: '#2ad06a', nk: 'pendant', nkC: '#2ad06a' },
-      { n: 'Nymphia', hs: 'long', hc: '#5ae0ff', h2: '#ffffff', e: '#3ab0ff', o: 'gown', t: '#c8f4ff', b: '#5ae0ff', a: '#ffffff', sh: '#5ae0ff', w: 'fairy', wC: '#a0f0ff', hd: 'shell', hdC: '#ffd6ea' },
-      { n: 'Prisma', hs: 'twintails', hc: '#ff9bf0', h2: '#7ae0ff', e: '#b07cff', o: 'dress', t: '#ffffff', b: '#c8a0ff', a: '#7ae0ff', sh: '#ffffff', w: 'butterfly', wC: '#a0f0ff', hd: 'wand', hdC: '#ff9bf0' },
-      { n: 'Opaline', hs: 'curly', hc: '#fff0ff', h2: '#a0f0ff', e: '#ff9bd2', o: 'gown', t: '#ffffff', b: '#e0f0ff', a: '#ff9bd2', sh: '#ffffff', hat: 'crown', hatC: '#a0f0ff', w: 'crystal', wC: '#e0f8ff' },
-      { n: 'Drakaria', hs: 'long', hc: '#3ad0ff', h2: '#e0f8ff', e: '#ff5fd2', o: 'armor', t: '#2a5a8a', b: '#3ad0ff', a: '#e0f8ff', sh: '#2a5a8a', hat: 'horns', hatC: '#e0f8ff', w: 'dragon', wC: '#3ad0ff', tl: 'dragon', tlC: '#3ad0ff' },
-      { n: 'Adamantia', hs: 'hime', hc: '#ffffff', h2: '#c8f4ff', e: '#3ad0ff', o: 'gown', t: '#ffffff', b: '#c8f4ff', a: '#3ad0ff', sh: '#ffffff', hat: 'crown', hatC: '#e0f8ff', w: 'crystal', wC: '#ffffff', hd: 'staff', hdC: '#c8f4ff', glow: true },
+      { n: 'Crystal Crab', k: 'crab', c: '#9fe8ff', c2: '#ffffff', c3: '#3a8ad0' },
+      { n: 'Gem Fish', k: 'fish', c: '#c8a0ff', c2: '#ffffff', c3: '#7a4bff' },
+      { n: 'Quartz Turtle', k: 'turtle', c: '#ff9bd2', c2: '#fff0f8', c3: '#c84a8a', x: 'spikes' },
+      { n: 'Prism Frog', k: 'frog', c: '#7ae8ff', c2: '#ffffff', c3: '#ff9bd2' },
+      { n: 'Glass Jelly', k: 'jelly', c: '#c8f0ff', c2: '#ffffff', c3: '#7ae8ff' },
+      { n: 'Amethyst Axolotl', k: 'axolotl', c: '#b07cff', c2: '#e6d8ff', c3: '#ff9bf0' },
+      { n: 'Diamond Duck', k: 'duck', c: '#e0f8ff', c2: '#7ae8ff', c3: '#ffffff', x: 'shiny' },
+      { n: 'Crystal Seahorse', k: 'seahorse', c: '#7ae8ff', c2: '#ffffff', c3: '#c8a0ff', x: 'glow' },
+      { n: 'Geode Croc', k: 'croc', c: '#6a4ab0', c2: '#ff9bd2', c3: '#7ae8ff', x: 'spikes glow' },
+      { n: 'Crystal Wyrm', k: 'croc', c: '#9fe8ff', c2: '#ffffff', c3: '#c8a0ff', x: 'wings horn glow' },
     ],
   },
   {
-    id: 'beach', name: 'Sunset Beach', color: '#ffd2a0', alt: '#f8c28c', banner: ['#ff7a5a', '#a02a6a'], text: '#fff0d8',
+    id: 'beach', name: 'Sunset Bay', color: '#ffd2a0', alt: '#f8c28c', banner: ['#ff7a5a', '#a02a6a'], water: '#3ac0e0', waterLine: '#ffe8d0', text: '#fff0d8',
     cover: ['palm', 'umbrella', 'sandcastle'], fx: 'sunset', fxColors: ['#ffb05a', '#ff7a8a', '#ffe08a'], dust: '#ffe0b8',
     girls: [
-      { n: 'Shelly', hs: 'ponytail', hc: '#ffd23a', e: '#3ab0ff', o: 'shorts', t: '#ff8ac0', b: '#3ab0ff', a: '#ffffff', sh: '#ff8ac0', hat: 'sunHat', hatC: '#fff2c8', hd: 'shell', hdC: '#ffd6ea' },
-      { n: 'Coco', hs: 'buns', hc: '#6a3a1a', e: '#3a8a3a', o: 'dress', t: '#ffffff', b: '#3ad0a0', a: '#ffffff', sh: '#3ad0a0', nk: 'lei', nkC: '#ff5fa8', hd: 'icecream', hdC: '#ff9ec7' },
-      { n: 'Wavey', hs: 'long', hc: '#ffd23a', h2: '#ffffff', e: '#3a8aff', o: 'shorts', t: '#3ad0ff', b: '#ff8a2a', a: '#ffffff', sh: '#ffffff', ew: 'sunglasses', ewC: '#ff5a3a', hd: 'surfboard', hdC: '#ff5a3a' },
-      { n: 'Flamina', hs: 'wavy', hc: '#ff8ac0', e: '#ff5fa8', o: 'dress', t: '#ffb3d9', b: '#ff8ac0', a: '#ffffff', sh: '#ff8ac0', hat: 'flower', hatC: '#ffffff' },
-      { n: 'Marina', hs: 'ponytail', hc: '#e8823a', e: '#3a6aa0', o: 'shorts', t: '#e83a3a', b: '#e83a3a', a: '#ffffff', sh: '#ffffff', ew: 'sunglasses', ewC: '#1a1a1a', nk: 'pendant', nkC: '#ffd23a' },
-      { n: 'Lani', hs: 'long', hc: '#2a1a10', e: '#3a8a3a', o: 'skirt', t: '#ff5a3a', b: '#7be04a', a: '#ffd23a', sh: '#8b5a33', hat: 'flower', hatC: '#ff3a6a', nk: 'lei', nkC: '#ffd23a', hd: 'flower', hdC: '#ff3a6a' },
-      { n: 'Sora', hs: 'sidetail', hc: '#ff5a3a', e: '#3ab0ff', o: 'shorts', t: '#ffffff', b: '#3a5aff', a: '#ff5a3a', sh: '#ffffff', hat: 'bandana', hatC: '#ff5a3a', hd: 'ball', hdC: '#ffffff' },
-      { n: 'Dusk', hs: 'wavy', hc: '#ff7a5a', h2: '#b07cff', e: '#ff5fa8', o: 'gown', t: '#ffb08a', b: '#ff7a5a', a: '#b07cff', sh: '#ff7a5a', hat: 'flower', hatC: '#b07cff', hd: 'harp', hdC: '#ffd23a' },
-      { n: 'Solstice', hs: 'hime', hc: '#ffaa33', h2: '#ff5a5a', e: '#ffcc33', o: 'gown', t: '#fff0c0', b: '#ff8a2a', a: '#ffd23a', sh: '#ff8a2a', hat: 'halo', hatC: '#ffaa33', w: 'fire', wC: '#ffaa33' },
-      { n: 'Helia', hs: 'long', hc: '#ffcc66', h2: '#ff6a8a', e: '#ff6a3a', o: 'gown', t: '#ffffff', b: '#ffaa66', a: '#ff6a8a', sh: '#ffffff', hat: 'crown', hatC: '#ffcc66', w: 'seraph', wC: '#ffcc88', hd: 'staff', hdC: '#ffcc66', glow: true },
+      { n: 'Beach Crab', k: 'crab', c: '#e83a2a', c2: '#ffb08a', c3: '#8a1a1a' },
+      { n: 'Seagull', k: 'duck', c: '#ffffff', c2: '#c8ccd4', c3: '#ffd23a' },
+      { n: 'Sea Turtle', k: 'turtle', c: '#3a8a6a', c2: '#c8e0a0', c3: '#1a4a3a' },
+      { n: 'Clownfish', k: 'fish', c: '#ff7a1a', c2: '#ffffff', c3: '#1a1a1a', x: 'stripes' },
+      { n: 'Dolphin', k: 'dolphin', c: '#7a9ac0', c2: '#e0e8f4', c3: '#4a6a90' },
+      { n: 'Sunset Seal', k: 'seal', c: '#ff9a6a', c2: '#ffe0c8', c3: '#a84a3a' },
+      { n: 'Flamingo Swan', k: 'swan', c: '#ff8ac0', c2: '#ffd6ea', c3: '#1a1a1a' },
+      { n: 'Golden Dolphin', k: 'dolphin', c: '#ffc21f', c2: '#fff2a0', c3: '#ff8a1a', x: 'shiny' },
+      { n: 'Sun Turtle', k: 'turtle', c: '#ff8a2a', c2: '#ffe680', c3: '#ff3a3a', x: 'crown glow' },
+      { n: 'Sunset Whale', k: 'whale', c: '#ff7a5a', c2: '#ffd2a0', c3: '#a02a6a', x: 'halo glow' },
     ],
   },
   {
-    id: 'reef', name: 'Coral Reef', color: '#3fc4d8', alt: '#34b6cc', banner: ['#3ad0ff', '#1a3a8a'], text: '#ffffff',
+    id: 'reef', name: 'Coral Reef', color: '#3fc4d8', alt: '#34b6cc', banner: ['#3ad0ff', '#1a3a8a'], water: '#1aa8e0', waterLine: '#9ff0ff', text: '#ffffff',
     cover: ['coral', 'seaweed', 'coral'], fx: 'bubbles', fxColors: ['#c8f8ff', '#ffffff', '#a0e8ff'], dust: '#c8f8ff',
     girls: [
-      { n: 'Bubbly', hs: 'bob', hc: '#7fd8ff', e: '#3a8aff', o: 'mermaid', t: '#ff8ac0', b: '#3ad0c0', a: '#ffffff', sh: '#3ad0c0', hat: 'shell', hatC: '#ffb3d9' },
-      { n: 'Starla', hs: 'buns', hc: '#ff8a5a', e: '#ff5a3a', o: 'dress', t: '#ffd0b0', b: '#ff8a5a', a: '#ffffff', sh: '#ff8a5a', hat: 'starClip', hatC: '#ff8a5a' },
-      { n: 'Pearl', hs: 'long', hc: '#fff6ff', h2: '#e0d0ff', e: '#b07cff', o: 'mermaid', t: '#e0d0ff', b: '#c8a0ff', a: '#ffffff', sh: '#c8a0ff', nk: 'pearls', nkC: '#ffffff', hd: 'shell', hdC: '#ffffff' },
-      { n: 'Jelli', hs: 'long', hc: '#ffb3f0', h2: '#c8a0ff', e: '#ff5fd2', o: 'dress', t: '#ffd0f8', b: '#c8a0ff', a: '#ffffff', sh: '#c8a0ff', hat: 'mushroom', hatC: '#ffb3f0' },
-      { n: 'Octavia', hs: 'wavy', hc: '#b04aff', e: '#ff5fd2', o: 'dress', t: '#e0b0ff', b: '#8a2ad0', a: '#ffffff', sh: '#8a2ad0', hat: 'bow', hatC: '#ff5fd2', hd: 'book', hdC: '#3ad0c0' },
-      { n: 'Sharky', hs: 'bob', hc: '#3a6a9a', e: '#3a8aff', o: 'pants', t: '#5a8aba', b: '#e8f0ff', a: '#ffffff', sh: '#3a6a9a', hat: 'sharkHood', hatC: '#5a8aba', tl: 'dragon', tlC: '#5a8aba' },
-      { n: 'Hippa', hs: 'ponytail', hc: '#ffd23a', e: '#ff8a2a', o: 'mermaid', t: '#ffaa33', b: '#ffd23a', a: '#ffffff', sh: '#ffd23a', hat: 'starClip', hatC: '#ff8a2a' },
-      { n: 'Coralia', hs: 'hime', hc: '#ff6f61', h2: '#ffd0c0', e: '#2ad1c9', o: 'mermaid', t: '#ff8a7a', b: '#2ad1c9', a: '#ffd23a', sh: '#2ad1c9', hat: 'crown', hatC: '#ff6f61', hd: 'trident', hdC: '#ffd23a' },
-      { n: 'Lumina', hs: 'long', hc: '#2a2a5a', h2: '#3affff', e: '#3affff', o: 'gown', t: '#1a1a3a', b: '#2a2a5a', a: '#3affff', sh: '#1a1a3a', hat: 'lure', hatC: '#3affff', hd: 'lantern', hdC: '#3affff' },
-      { n: 'Thalassa', hs: 'long', hc: '#3affd0', h2: '#ffffff', e: '#3affd0', o: 'mermaid', t: '#e0fff8', b: '#2ad1c9', a: '#ffd23a', sh: '#2ad1c9', hat: 'crown', hatC: '#ffd23a', hd: 'trident', hdC: '#ffd23a', glow: true },
+      { n: 'Reef Fish', k: 'fish', c: '#3a6aff', c2: '#ffd23a', c3: '#1a3aa0' },
+      { n: 'Pufferfish', k: 'fish', c: '#f2d28c', c2: '#ffffff', c3: '#8a6a3a', x: 'spikes round' },
+      { n: 'Octopus', k: 'octopus', c: '#ff5a8a', c2: '#ffd6e0', c3: '#a82a4a' },
+      { n: 'Reef Shark', k: 'shark', c: '#7a8aa0', c2: '#ffffff', c3: '#4a5a70' },
+      { n: 'Seahorse', k: 'seahorse', c: '#ffb02a', c2: '#fff2a0', c3: '#ff5a1a' },
+      { n: 'Coral Crab', k: 'crab', c: '#ff7aa8', c2: '#ffffff', c3: '#c82a6a', x: 'spikes' },
+      { n: 'Blue Tang', k: 'fish', c: '#2a5aff', c2: '#ffd23a', c3: '#0a1a6a', x: 'stripes' },
+      { n: 'Sea Dragon', k: 'seahorse', c: '#3ad0a0', c2: '#ffd23a', c3: '#ff5a8a', x: 'wings glow' },
+      { n: 'Reef Queen', k: 'octopus', c: '#b04aff', c2: '#ffd6f0', c3: '#ffd23a', x: 'crown glow' },
+      { n: 'Pearl Whale', k: 'whale', c: '#e8f0ff', c2: '#ffffff', c3: '#ff9ad8', x: 'halo glow shiny' },
     ],
   },
   {
-    id: 'heaven', name: 'Cloud Heaven', color: '#fffaf0', alt: '#f3ecdc', banner: ['#fff0b0', '#c89a3a'], text: '#ffffff',
+    id: 'heaven', name: 'Cloud Springs', color: '#fffaf0', alt: '#f3ecdc', banner: ['#fff0b0', '#c89a3a'], water: '#9ae8ff', waterLine: '#ffffff', text: '#ffffff',
     cover: ['cloud', 'pillar', 'cloud'], fx: 'feathers', fxColors: ['#ffffff', '#fff6d8', '#ffe8a0'], dust: '#ffffff',
     girls: [
-      { n: 'Cherie', hs: 'curly', hc: '#ffe680', e: '#3a8aff', o: 'dress', t: '#ffffff', b: '#ffffff', a: '#ffd23a', sh: '#ffffff', hat: 'halo', hatC: '#ffe680', w: 'angel', wC: '#ffffff', hd: 'harp', hdC: '#ffd23a' },
-      { n: 'Nimbus', hs: 'fluffy', hc: '#ffffff', h2: '#c8e0ff', e: '#6aa0ff', o: 'dress', t: '#f0f6ff', b: '#c8e0ff', a: '#ffffff', sh: '#ffffff', hat: 'halo', hatC: '#ffe680', w: 'angel', wC: '#ffffff' },
-      { n: 'Lyra', hs: 'long', hc: '#ffd8a0', e: '#3a8aff', o: 'gown', t: '#ffffff', b: '#ffe6b0', a: '#ffd23a', sh: '#ffffff', hat: 'leafCrown', hatC: '#ffd23a', hd: 'harp', hdC: '#ffd23a' },
-      { n: 'Stella', hs: 'twintails', hc: '#fff6c0', h2: '#ffd23a', e: '#ffcc33', o: 'dress', t: '#ffffff', b: '#ffe680', a: '#ffd23a', sh: '#ffe680', hat: 'starClip', hatC: '#ffd23a', w: 'fairy', wC: '#fff6c0', hd: 'wand', hdC: '#ffd23a' },
-      { n: 'Iris', hs: 'wavy', hc: '#ff8ac0', h2: '#7ae0ff', e: '#b07cff', o: 'dress', t: '#ffffff', b: '#b8f0ff', a: '#ff8ac0', sh: '#ffffff', hat: 'halo', hatC: '#ffe680', w: 'butterfly', wC: '#ffd6f0' },
-      { n: 'Brynja', hs: 'braid', hc: '#ffe680', e: '#3a8aff', o: 'armor', t: '#e8e8f0', b: '#3a5aa0', a: '#ffd23a', sh: '#e8e8f0', hat: 'wingHelm', hatC: '#e8e8f0', w: 'angel', wC: '#ffffff', hd: 'sword', hdC: '#e8e8f0' },
-      { n: 'Eos', hs: 'long', hc: '#ffb08a', h2: '#ffe680', e: '#ff8a5a', o: 'gown', t: '#fff0e0', b: '#ffb08a', a: '#ffd23a', sh: '#ffffff', hat: 'halo', hatC: '#ffcc66', w: 'angel', wC: '#ffe6d0' },
-      { n: 'Seraphina', hs: 'hime', hc: '#ffffff', h2: '#ffe680', e: '#ffcc33', o: 'gown', t: '#ffffff', b: '#fff6d8', a: '#ffd23a', sh: '#ffffff', hat: 'halo', hatC: '#ffe680', w: 'seraph', wC: '#ffffff', hd: 'staff', hdC: '#ffd23a' },
-      { n: 'Aurelia', hs: 'long', hc: '#ffd23a', h2: '#ffffff', e: '#ffd23a', o: 'gown', t: '#ffffff', b: '#ffe680', a: '#ffd23a', sh: '#ffffff', hat: 'crown', hatC: '#ffd23a', w: 'seraph', wC: '#fff6c0', hd: 'staff', hdC: '#ffd23a' },
-      { n: 'Celesta', hs: 'long', hc: '#ffffff', h2: '#ffd6f0', e: '#ff9bf0', o: 'gown', t: '#ffffff', b: '#fff0fa', a: '#ffd23a', sh: '#ffffff', hat: 'crown', hatC: '#ffe680', w: 'seraph', wC: '#fff0ff', hd: 'staff', hdC: '#ffe680', glow: true },
+      { n: 'Cloud Duck', k: 'duck', c: '#ffffff', c2: '#f0f4ff', c3: '#ffd23a', x: 'halo' },
+      { n: 'Sky Fish', k: 'fish', c: '#9fd8ff', c2: '#ffffff', c3: '#ffd23a', x: 'wings' },
+      { n: 'Angel Frog', k: 'frog', c: '#fff6e0', c2: '#ffffff', c3: '#ffd23a', x: 'halo wings' },
+      { n: 'Cloud Jelly', k: 'jelly', c: '#ffffff', c2: '#fff6e0', c3: '#ffd23a' },
+      { n: 'Sky Dolphin', k: 'dolphin', c: '#c8e8ff', c2: '#ffffff', c3: '#ffd23a', x: 'wings' },
+      { n: 'Halo Turtle', k: 'turtle', c: '#ffe680', c2: '#ffffff', c3: '#c89a3a', x: 'halo' },
+      { n: 'Seraph Swan', k: 'swan', c: '#ffffff', c2: '#fff6d8', c3: '#ffd23a', x: 'halo wings glow' },
+      { n: 'Star Seahorse', k: 'seahorse', c: '#fff0b0', c2: '#ffffff', c3: '#ffd23a', x: 'glow' },
+      { n: 'Heaven Whale', k: 'whale', c: '#fffaf0', c2: '#ffffff', c3: '#ffd23a', x: 'wings halo glow' },
+      { n: 'Divine Koi', k: 'fish', c: '#ffffff', c2: '#ffd23a', c3: '#ff9ad8', x: 'spots halo wings glow' },
     ],
   },
   {
-    id: 'lava', name: 'Lava Inferno', color: '#5a2a24', alt: '#4a201c', banner: ['#ff5a1a', '#5a0a0a'], text: '#ffe0a0',
+    id: 'lava', name: 'Lava Lake', color: '#5a2a24', alt: '#4a201c', banner: ['#ff5a1a', '#5a0a0a'], water: '#ff6a1a', waterLine: '#ffe060', text: '#ffe0a0',
     cover: ['obsidian', 'charTree', 'lavaRock'], fx: 'embers', fxColors: ['#ff7a1a', '#ffcc33', '#ff3a1a'], dust: '#5a4a48',
     girls: [
-      { n: 'Impy', hs: 'bob', hc: '#e83a3a', e: '#ffcc33', o: 'skirt', t: '#2a1a1a', b: '#e83a3a', a: '#ffcc33', sh: '#2a1a1a', hat: 'horns', hatC: '#2a1a1a', tl: 'devil', tlC: '#e83a3a' },
-      { n: 'Cinder', hs: 'pixie', hc: '#3a3a3a', h2: '#ff5a1a', e: '#ff5a1a', o: 'pants', t: '#3a2a2a', b: '#2a2a2a', a: '#ff5a1a', sh: '#2a2a2a', hd: 'torch', hdC: '#ff7a1a' },
-      { n: 'Blaze', hs: 'ponytail', hc: '#ff5a1a', h2: '#ffd23a', e: '#ffd23a', o: 'shorts', t: '#ff8a2a', b: '#2a1a1a', a: '#ffd23a', sh: '#2a1a1a', hat: 'bandana', hatC: '#2a1a1a', hd: 'torch', hdC: '#ff8a2a' },
-      { n: 'Cerbie', hs: 'wavy', hc: '#2a1a1a', h2: '#e83a3a', e: '#e83a3a', o: 'skirt', t: '#2a1a1a', b: '#5a1a1a', a: '#e83a3a', sh: '#2a1a1a', hat: 'dogEars', hatC: '#2a1a1a', tl: 'fox', tlC: '#2a1a1a', nk: 'choker', nkC: '#e83a3a' },
-      { n: 'Basalta', hs: 'curly', hc: '#ff7a1a', h2: '#ffd23a', e: '#ffcc33', o: 'armor', t: '#3a2a2a', b: '#4a2020', a: '#ff5a1a', sh: '#3a2a2a', hat: 'oniHorns', hatC: '#ffd23a' },
-      { n: 'Morwen', hs: 'long', hc: '#8a8a9a', e: '#ff5a1a', o: 'dress', t: '#2a2a2a', b: '#5a5a6a', a: '#ff5a1a', sh: '#2a2a2a', hat: 'witch', hatC: '#2a2a2a', hd: 'broom', hdC: '#5a3a1a' },
-      { n: 'Akane', hs: 'hime', hc: '#e83a3a', e: '#ffd23a', o: 'kimono', t: '#2a1a1a', b: '#e83a3a', a: '#ffd23a', sh: '#2a1a1a', hat: 'oniHorns', hatC: '#ffe0a0', hd: 'sword', hdC: '#e8e8f0' },
-      { n: 'Pyra', hs: 'wavy', hc: '#ff5a1a', h2: '#ffd23a', e: '#ffd23a', o: 'gown', t: '#ffd23a', b: '#ff5a1a', a: '#ff2a1a', sh: '#ff5a1a', hat: 'crown', hatC: '#ffaa00', w: 'fire', wC: '#ff7a1a' },
-      { n: 'Infernia', hs: 'long', hc: '#2a0a1a', h2: '#ff2a4a', e: '#ff2a4a', o: 'gown', t: '#2a0a1a', b: '#8a1020', a: '#ffd23a', sh: '#2a0a1a', hat: 'horns', hatC: '#ffd23a', w: 'bat', wC: '#5a1020', tl: 'devil', tlC: '#8a1020', hd: 'staff', hdC: '#ff2a4a' },
-      { n: 'Ignis', hs: 'hime', hc: '#ffcc33', h2: '#ff2a1a', e: '#ffffff', o: 'armor', t: '#2a1a1a', b: '#ff5a1a', a: '#ffd23a', sh: '#2a1a1a', hat: 'crown', hatC: '#ff5a1a', w: 'fire', wC: '#ffaa33', tl: 'dragon', tlC: '#ff5a1a', hd: 'sword', hdC: '#ff7a1a', glow: true },
+      { n: 'Magma Crab', k: 'crab', c: '#3a2a2a', c2: '#ff5a1a', c3: '#ffcc33' },
+      { n: 'Lava Frog', k: 'frog', c: '#e83a1a', c2: '#ffcc33', c3: '#3a1a1a' },
+      { n: 'Ember Fish', k: 'fish', c: '#ff5a1a', c2: '#ffcc33', c3: '#8a1a0a', x: 'glow' },
+      { n: 'Obsidian Turtle', k: 'turtle', c: '#2a2030', c2: '#ff6a1a', c3: '#ffcc33', x: 'spikes' },
+      { n: 'Salamander', k: 'axolotl', c: '#ff3a1a', c2: '#ffcc33', c3: '#ff8a1a', x: 'spots' },
+      { n: 'Volcano Croc', k: 'croc', c: '#4a2420', c2: '#ff6a1a', c3: '#ffcc33', x: 'spikes' },
+      { n: 'Lava Shark', k: 'shark', c: '#3a2a2a', c2: '#ff5a1a', c3: '#ffcc33', x: 'glow' },
+      { n: 'Inferno Octopus', k: 'octopus', c: '#ff3a1a', c2: '#ffcc33', c3: '#2a1010', x: 'glow' },
+      { n: 'Phoenix Duck', k: 'duck', c: '#ff5a1a', c2: '#ffcc33', c3: '#ffffff', x: 'wings crown glow' },
+      { n: 'Magma Leviathan', k: 'whale', c: '#2a1a1a', c2: '#ff5a1a', c3: '#ffcc33', x: 'horn spikes glow' },
     ],
   },
   {
-    id: 'cosmic', name: 'Cosmic Rift', color: '#3a2a6a', alt: '#30225c', banner: ['#b04aff', '#1a0a4a'], text: '#e0f8ff',
+    id: 'cosmic', name: 'Cosmic Sea', color: '#3a2a6a', alt: '#30225c', banner: ['#b04aff', '#1a0a4a'], water: '#6a3aff', waterLine: '#3affff', text: '#e0f8ff',
     cover: ['alienCrystal', 'alienPlant', 'meteor'], fx: 'stars', fxColors: ['#ffffff', '#b07cff', '#3affff', '#ff9bf0'], dust: '#8a7aff',
     girls: [
-      { n: 'Astra', hs: 'bob', hc: '#ff9ec7', e: '#3a8aff', o: 'suit', t: '#ffffff', b: '#ffffff', a: '#ff5a3a', sh: '#ff5a3a', hat: 'helmet', hatC: '#bfeaff' },
-      { n: 'Zeeble', hs: 'bob', hc: '#3aff8a', sk: '#b8ffb0', e: '#1a1a2a', o: 'dress', t: '#3a2a8a', b: '#3aff8a', a: '#ffffff', sh: '#3a2a8a', hat: 'antenna', hatC: '#3aff8a' },
-      { n: 'Lunette', hs: 'twintails', hc: '#ffffff', h2: '#ffe680', e: '#ff5fa8', o: 'dress', t: '#e0e0ff', b: '#ffffff', a: '#ffe680', sh: '#ffffff', hat: 'bunnyEars', hatC: '#ffffff', tl: 'bunny', tlC: '#ffffff', hd: 'icecream', hdC: '#ffe680' },
-      { n: 'Vega', hs: 'ponytail', hc: '#3a2a8a', e: '#3affff', o: 'suit', t: '#2a2a4a', b: '#3a5aff', a: '#3affff', sh: '#2a2a4a', hat: 'visor', hatC: '#3affff' },
-      { n: 'Nebby', hs: 'wavy', hc: '#b04aff', h2: '#3affff', e: '#ff5fd2', o: 'gown', t: '#2a1a5a', b: '#b04aff', a: '#3affff', sh: '#2a1a5a', hat: 'starClip', hatC: '#3affff', w: 'fairy', wC: '#b04aff' },
-      { n: 'Cyra', hs: 'bob', hc: '#e0e8ff', h2: '#3affff', e: '#3affff', o: 'suit', t: '#e0e8ff', b: '#3a3a5a', a: '#3affff', sh: '#3a3a5a', hat: 'headphones', hatC: '#3a3a5a' },
-      { n: 'Cometta', hs: 'sidetail', hc: '#7ae0ff', h2: '#ffffff', e: '#3a8aff', o: 'dress', t: '#ffffff', b: '#3a8aff', a: '#ffd23a', sh: '#3a8aff', w: 'fairy', wC: '#7ae0ff', hd: 'wand', hdC: '#ffd23a' },
-      { n: 'Astraea', hs: 'long', hc: '#2a1a5a', h2: '#ff5fd2', e: '#ffd23a', o: 'dress', t: '#1a1a3a', b: '#4a2a8a', a: '#ffd23a', sh: '#1a1a3a', hat: 'witch', hatC: '#2a1a5a', hd: 'staff', hdC: '#ffd23a' },
-      { n: 'Nyx', hs: 'hime', hc: '#1a1a2a', h2: '#b04aff', e: '#b04aff', o: 'gown', t: '#0a0a1a', b: '#2a1a3a', a: '#b04aff', sh: '#0a0a1a', hat: 'crown', hatC: '#b04aff', w: 'bat', wC: '#2a1a3a' },
-      { n: 'Omnia', hs: 'long', hc: '#ffffff', h2: '#b04aff', e: '#ff5fd2', o: 'gown', t: '#0a0a1a', b: '#3a1a6a', a: '#3affff', sh: '#0a0a1a', hat: 'halo', hatC: '#b04aff', w: 'seraph', wC: '#b04aff', hd: 'staff', hdC: '#3affff', glow: true },
+      { n: 'Star Jelly', k: 'jelly', c: '#b07cff', c2: '#ffffff', c3: '#3affff' },
+      { n: 'Space Fish', k: 'fish', c: '#3a2a8a', c2: '#3affff', c3: '#ff5fd2', x: 'glow' },
+      { n: 'Alien Frog', k: 'frog', c: '#7dff4a', c2: '#e0ffd0', c3: '#b04aff', x: 'horn' },
+      { n: 'Comet Seahorse', k: 'seahorse', c: '#3affff', c2: '#ffffff', c3: '#b04aff', x: 'glow' },
+      { n: 'Nebula Octopus', k: 'octopus', c: '#7a4bff', c2: '#ff5fd2', c3: '#3affff', x: 'spots glow' },
+      { n: 'Void Shark', k: 'shark', c: '#1a1030', c2: '#b04aff', c3: '#3affff', x: 'glow' },
+      { n: 'Galaxy Turtle', k: 'turtle', c: '#2a1a5a', c2: '#ff5fd2', c3: '#3affff', x: 'spots glow' },
+      { n: 'Cosmic Whale', k: 'whale', c: '#3a2a8a', c2: '#b04aff', c3: '#3affff', x: 'spots halo glow' },
+      { n: 'Astro Axolotl', k: 'axolotl', c: '#ff5fd2', c2: '#ffffff', c3: '#3affff', x: 'halo wings glow' },
+      { n: 'Omega Kraken', k: 'octopus', c: '#1a0a3a', c2: '#b04aff', c3: '#3affff', x: 'crown halo horn glow' },
     ],
   },
 ]
 
-const SKINS = ['#ffe0c8', '#f6caa0', '#ffd9b8', '#e9b98f', '#c98e64', '#fbe3d0', '#f2c49a', '#a8714a']
 const niceRound = (v) => {
   if (v < 10) return Math.round(v)
   const p = Math.pow(10, Math.floor(Math.log10(v)) - 1)
   return Math.round(v / p) * p
 }
-// Every girl, flattened: { id, name, area, slot, rarity, odds, income, look }.
-// A girl's look from her short keys (see AREAS above); `place` = { fx, fxColors } for her particles.
-const lookOf = (g, skinIdx, place) => ({
-  skin: g.sk ?? SKINS[skinIdx % SKINS.length],
-  hair: g.hc,
-  hair2: g.h2 ?? null,
-  hairStyle: g.hs,
-  eyes: g.e,
-  outfit: g.o,
-  top: g.t,
-  bottom: g.b,
-  accent: g.a ?? '#ffffff',
-  shoes: g.sh ?? g.b,
-  hat: g.hat ?? null,
-  hatColor: g.hatC ?? g.a ?? '#ffffff',
-  eyewear: g.ew ?? null,
-  eyewearColor: g.ewC ?? '#202028',
-  neck: g.nk ?? null,
-  neckColor: g.nkC ?? g.a ?? '#ffffff',
-  wings: g.w ?? null,
-  wingColor: g.wC ?? '#ffffff',
-  tail: g.tl ?? null,
-  tailColor: g.tlC ?? g.hc,
-  held: g.hd ?? null,
-  heldColor: g.hdC ?? '#ffffff',
-  glow: !!g.glow,
-  fx: place.fx,
-  fxColors: place.fxColors,
-})
+// Every animal, flattened: { id, name, area, slot, rarity, odds, income, look }.
+// An animal's look from its short keys: k body plan (game/baddieModel.js KINDS: duck, frog, fish,
+// turtle, crab, penguin, seal, otter, octopus, jelly, shark, dolphin, whale, axolotl, swan, croc,
+// seahorse), c main colour, c2 second colour (belly / head / pattern), c3 accent (beak, fins,
+// claws), x extras (any of: crown halo horn wings spots stripes spikes tusks whiskers straw shiny
+// round glow). `place` = { fx, fxColors } for its particles.
+const lookOf = (g, _i, place) => {
+  const x = new Set((g.x ?? '').split(/\s+/).filter(Boolean))
+  return { kind: g.k, main: g.c, second: g.c2 ?? g.c, accent: g.c3 ?? '#ffd23a', extras: x, glow: x.has('glow'), fx: place.fx, fxColors: place.fxColors }
+}
 // Every lane girl, flattened (see above).
 export const BADDIES = AREAS.flatMap((area, ai) => {
   const shift = Math.floor(ai / 3)
@@ -653,7 +670,8 @@ export const BADDIES = AREAS.flatMap((area, ai) => {
 }
 
 // Ids from the first version of the game (one flat list of 18) -> the girl they became.
-export const LEGACY_IDS = {
+export const LEGACY_IDS = {} // none: a new game
+const _OLD_IDS = {
   pip: 'meadow_daisy', momo: 'meadow_clover', taffy: 'meadow_bunnie', juniper: 'meadow_ladybell', kiki: 'farm_cinna', bolt: 'meadow_honey',
   sable: 'lake_rowan', coral: 'beach_flamina', nova: 'lake_libelle', vexa: 'lava_cerbie', mirage: 'desert_mirage', rune: 'snow_borea',
   solara: 'desert_solara', onyx: 'cosmic_nyx', frostine: 'snow_glacia', cosmia: 'cosmic_nebby', emberqueen: 'lava_pyra', glitchling: 'cosmic_cyra',
@@ -706,28 +724,28 @@ export const SEASONS = [
   {
     id: 'candy', name: 'Candy Carnival', icon: '\u{1F36C}', color: '#ff7ac8', banner: ['#ff9ad8', '#c42f8a'], fx: 'gems', fxColors: ['#ff9ad8', '#ffffff', '#7ae8ff', '#ffe680'],
     girls: [
-      { n: 'Gumdrop', hs: 'twintails', hc: '#ff7ac8', h2: '#ffffff', e: '#ff3fa8', o: 'skirt', t: '#ffffff', b: '#ff7ac8', a: '#7ae8ff', sh: '#ff7ac8', hat: 'bow', hatC: '#7ae8ff', hd: 'icecream', hdC: '#ff9ad8' },
-      { n: 'Taffeta', hs: 'buns', hc: '#9a6bff', h2: '#ffd6f0', e: '#ff6fa8', o: 'dress', t: '#ffd6f0', b: '#9a6bff', a: '#ffffff', sh: '#ffffff', hat: 'catEars', hatC: '#9a6bff', tl: 'cat', tlC: '#9a6bff' },
-      { n: 'Bonbonne', hs: 'curly', hc: '#6a3b1e', h2: '#ffb3d9', e: '#ff4f8a', o: 'gown', t: '#ff4f8a', b: '#ffd6f0', a: '#6a3b1e', sh: '#6a3b1e', hat: 'crown', hatC: '#ffd23a', hd: 'wand', hdC: '#ff4f8a', w: 'fairy', wC: '#ffd6f0' },
-      { n: 'Sugarstar', hs: 'long', hc: '#ffffff', h2: '#ff9ad8', e: '#7a4bff', o: 'gown', t: '#fff0fa', b: '#ff9ad8', a: '#ffd23a', sh: '#ffffff', hat: 'tiara', hatC: '#ffd23a', w: 'butterfly', wC: '#ff9ad8', hd: 'staff', hdC: '#ffd23a', glow: true },
+      { n: 'Gummy Duck', k: 'duck', c: '#ff7ac8', c2: '#7ae8ff', c3: '#ffe680' },
+      { n: 'Candy Fish', k: 'fish', c: '#9a6bff', c2: '#ffd6f0', c3: '#ff7ac8', x: 'stripes' },
+      { n: 'Bonbon Octopus', k: 'octopus', c: '#ff4f8a', c2: '#ffd6f0', c3: '#6a3b1e', x: 'spots crown' },
+      { n: 'Sugar Swan', k: 'swan', c: '#fff0fa', c2: '#ff9ad8', c3: '#ffd23a', x: 'crown wings glow' },
     ],
   },
   {
     id: 'frost', name: 'Frost Festival', icon: '\u{2744}\u{FE0F}', color: '#7ae8ff', banner: ['#9ff0ff', '#2f7cc8'], fx: 'snow', fxColors: ['#ffffff', '#c8f6ff', '#9fd8ff'],
     girls: [
-      { n: 'Mittens', hs: 'bob', hc: '#e8f4ff', e: '#3d8fd6', o: 'overalls', t: '#ff5a5a', b: '#3d8fd6', sh: '#ffffff', hat: 'earmuffs', hatC: '#ff5a5a', nk: 'scarf', nkC: '#ff5a5a' },
-      { n: 'Snowdrop', hs: 'ponytail', hc: '#bfeaff', h2: '#ffffff', e: '#2f7cc8', o: 'skirt', t: '#ffffff', b: '#7cc8f2', a: '#ffffff', sh: '#7cc8f2', hat: 'beanie', hatC: '#7cc8f2', hd: 'lantern', hdC: '#ffe680' },
-      { n: 'Aurora', hs: 'wavy', hc: '#c8a0ff', h2: '#7ae8ff', e: '#7a4bff', o: 'kimono', t: '#e6d8ff', b: '#7ae8ff', a: '#ffffff', sh: '#ffffff', hat: 'starClip', hatC: '#7ae8ff', w: 'fairy', wC: '#7ae8ff' },
-      { n: 'Glacielle', hs: 'hime', hc: '#ffffff', h2: '#9fe8ff', e: '#3d8fd6', o: 'gown', t: '#e8f8ff', b: '#9fe8ff', a: '#ffffff', sh: '#bfeaff', hat: 'crown', hatC: '#bfeaff', w: 'angel', wC: '#ffffff', hd: 'staff', hdC: '#9fe8ff', glow: true },
+      { n: 'Mitten Penguin', k: 'penguin', c: '#3d8fd6', c2: '#ffffff', c3: '#ff5a5a' },
+      { n: 'Snowflake Seal', k: 'seal', c: '#e8f4ff', c2: '#ffffff', c3: '#7cc8f2', x: 'spots' },
+      { n: 'Aurora Narwhal', k: 'whale', c: '#c8a0ff', c2: '#7ae8ff', c3: '#ffffff', x: 'horn' },
+      { n: 'Glacier Swan', k: 'swan', c: '#bfeaff', c2: '#ffffff', c3: '#3d8fd6', x: 'crown halo glow' },
     ],
   },
   {
     id: 'moon', name: 'Spooky Moon', icon: '\u{1F383}', color: '#ff8a2e', banner: ['#ffa84a', '#5a2a8a'], fx: 'embers', fxColors: ['#ff8a2e', '#b07cff', '#ffe14a'],
     girls: [
-      { n: 'Pumpkina', hs: 'pixie', hc: '#ff8a2e', e: '#3a7a3a', o: 'dress', t: '#ff8a2e', b: '#2a1a1a', a: '#3fd23a', sh: '#2a1a1a', hat: 'witch', hatC: '#2a1a3a' },
-      { n: 'Batsy', hs: 'sidetail', hc: '#2a1a2a', h2: '#b07cff', e: '#ff3a5a', o: 'skirt', t: '#2a1a2a', b: '#b07cff', a: '#ff3a5a', sh: '#2a1a2a', hat: 'bow', hatC: '#ff3a5a', w: 'bat', wC: '#3a2a4a' },
-      { n: 'Hexie', hs: 'long', hc: '#7a4bff', h2: '#3fd23a', e: '#3fd23a', o: 'gown', t: '#3a2a5a', b: '#7a4bff', a: '#3fd23a', sh: '#2a1a3a', hat: 'witch', hatC: '#7a4bff', hd: 'broom', hdC: '#c89a5e' },
-      { n: 'Moonshade', hs: 'hime', hc: '#e8e8ff', h2: '#b07cff', e: '#ffd23a', o: 'gown', t: '#2a2040', b: '#b07cff', a: '#ffd23a', sh: '#2a2040', hat: 'horns', hatC: '#b07cff', w: 'dragon', wC: '#5a3a8a', hd: 'lantern', hdC: '#ffd23a', glow: true },
+      { n: 'Pumpkin Frog', k: 'frog', c: '#ff8a2e', c2: '#2a1a1a', c3: '#3fd23a' },
+      { n: 'Bat Fish', k: 'fish', c: '#3a2a4a', c2: '#b07cff', c3: '#ff3a5a', x: 'wings' },
+      { n: 'Ghost Jelly', k: 'jelly', c: '#e8e8ff', c2: '#ffffff', c3: '#3fd23a', x: 'glow' },
+      { n: 'Moon Kraken', k: 'octopus', c: '#5a3a8a', c2: '#b07cff', c3: '#ffd23a', x: 'horn crown glow' },
     ],
   },
 ]
@@ -755,8 +773,8 @@ export const seasonIncome = (def, a) => niceRound(AREA_INCOME(Math.max(0, a | 0)
 export const EVENT_SHOP = [
   { id: 'luck', name: 'Luck Potion', desc: '2x luck for 10 minutes', icon: '\u{1F340}', price: 25, potion: 'luck', minutes: 10 },
   { id: 'cash', name: 'Cash Potion', desc: '2x income for 10 minutes', icon: '\u{1F4B0}', price: 40, potion: 'cash', minutes: 10 },
-  { id: 'lucky', name: 'Lucky Throw', desc: '100x luck on your next throw', icon: '\u{2618}\u{FE0F}', price: 30, lucky: 1 },
-  { id: 'lure', name: 'Season Lure', desc: 'Your next throw brings out a season girl', icon: '\u{1F3A3}', price: 60, lure: 1 },
+  { id: 'lucky', name: 'Lucky Cast', desc: '100x luck on your next cast', icon: '\u{2618}\u{FE0F}', price: 30, lucky: 1 },
+  { id: 'lure', name: 'Season Lure', desc: 'Your next cast hooks a season animal', icon: '\u{1F3A3}', price: 60, lure: 1 },
 ]
 // Potions (event shop, Daily Reward, spin wheel): S.potions[kind] = epoch ms it lasts until.
 export const POTIONS = { luck: { mult: 2, name: 'Luck x2', icon: '\u{1F340}' }, cash: { mult: 2, name: 'Income x2', icon: '\u{1F4B0}' } }
@@ -802,7 +820,7 @@ export const SPIN = {
     { id: 'cash1', weight: 30, kind: 'cash', secs: 60, floor: 300, label: '1 min cash', color: '#6ee04a' },
     { id: 'luck', weight: 22, kind: 'potion', potion: 'luck', minutes: 10, label: 'Luck x2', color: '#2fb8a0' },
     { id: 'cash5', weight: 20, kind: 'cash', secs: 300, floor: 1500, label: '5 min cash', color: '#3fa6ff' },
-    { id: 'lucky', weight: 15, kind: 'lucky', n: 1, label: 'Lucky Throw', color: '#c97bff' },
+    { id: 'lucky', weight: 15, kind: 'lucky', n: 1, label: 'Lucky Cast', color: '#c97bff' },
     { id: 'income', weight: 12, kind: 'potion', potion: 'cash', minutes: 10, label: 'Income x2', color: '#ffb020' },
     { id: 'jackpot', weight: 1, kind: 'cash', secs: 1800, floor: 10000, label: 'JACKPOT', color: '#ff4f5e' },
   ],
@@ -833,7 +851,7 @@ export const FOOD_RARITIES = [
   { key: 'divine', name: 'Divine', color: '#ffd6f0', glow: '#fff0b0', fx: 8, emissive: 0.1 },
   { key: 'secret', name: 'Secret', color: '#d8d8e8', glow: '#e8e8ff', fx: 9, emissive: 0.06 },
   { key: 'exotic', name: 'Exotic', color: '#ffe04a', glow: '#7ffcff', fx: 10, emissive: 0.12 },
-  { key: 'special', name: 'Special Food', color: '#ffe04a', glow: '#c07dff', fx: 8, emissive: 0.1 },
+  { key: 'special', name: 'Special Rod', color: '#ffe04a', glow: '#c07dff', fx: 8, emissive: 0.1 },
 ]
 
 // Foods you can throw (the Food Shop, ui/hud.js; models in game/foods.js). Bought once
@@ -852,64 +870,159 @@ const FOOD_LUCK = (tier) => {
   return l < 10 ? Math.round(l * 100) / 100 : Math.round(l * 10) / 10
 }
 const FOOD_LIST = [
-  // id, name, rarity, price (money; tuned tier by tier in a progression sim, then x2.5 to make
-  // room for the event / reward cash: still about 2 hours to the last area), kind
-  ['carrot', 'Carrot', 0, 0, 'crunch'],
-  ['apple', 'Apple', 0, 10, 'crunch'],
-  ['banana', 'Banana', 0, 15, 'squish'],
-  ['orange', 'Orange', 0, 25, 'squish'],
-  ['strawberry', 'Strawberry', 1, 38, 'squish'],
-  ['pear', 'Pear', 1, 60, 'squish'],
-  ['lemon', 'Lemon', 1, 98, 'squish'],
-  ['cherry', 'Cherry', 1, 190, 'squish'],
-  ['grapes', 'Grapes', 2, 400, 'squish'],
-  ['corn', 'Corn', 2, 980, 'crunch'],
-  ['broccoli', 'Broccoli', 2, 2500, 'crunch'],
-  ['mushroom', 'Mushroom', 2, 4500, 'soft'],
-  ['eggplant', 'Eggplant', 3, 8200, 'soft'],
-  ['avocado', 'Avocado', 3, 15e3, 'squish'],
-  ['watermelon', 'Watermelon Slice', 3, 35e3, 'squish'],
-  ['pineapple', 'Pineapple', 3, 68e3, 'crunch'],
-  ['toast', 'Toast', 4, 130e3, 'crunch'],
-  ['bread', 'Bread Loaf', 4, 450e3, 'soft'],
-  ['cheese', 'Cheese Wedge', 4, 900e3, 'soft'],
-  ['croissant', 'Croissant', 4, 2.8e6, 'soft'],
-  ['cookie', 'Cookie', 5, 5.8e6, 'crunch'],
-  ['pancakes', 'Pancakes', 5, 12e6, 'soft'],
-  ['donut', 'Donut', 5, 28e6, 'soft'],
-  ['chocolate', 'Chocolate Bar', 5, 90e6, 'crunch'],
-  ['lollipop', 'Lollipop', 6, 280e6, 'crunch'],
-  ['popsicle', 'Popsicle', 6, 900e6, 'jelly'],
-  ['cupcake', 'Cupcake', 6, 2.5e9, 'soft'],
-  ['icecream', 'Ice Cream', 6, 12e9, 'jelly'],
-  ['fries', 'Fries', 7, 13e9, 'crunch'],
-  ['hotdog', 'Hot Dog', 7, 15e9, 'meat'],
-  ['burger', 'Burger', 7, 18e9, 'meat'],
-  ['pizza', 'Pizza Slice', 7, 42e9, 'soft'],
-  ['taco', 'Taco', 7, 72e9, 'crunch'],
-  ['sushi', 'Sushi', 8, 120e9, 'meat'],
-  ['ramen', 'Ramen', 8, 210e9, 'jelly'],
-  ['drumstick', 'Drumstick', 8, 350e9, 'meat'],
-  ['steak', 'Steak', 9, 600e9, 'meat'],
-  ['cake', 'Cake Slice', 9, 1e12, 'soft'],
-  ['milkshake', 'Milkshake', 9, 1.8e12, 'jelly'],
-  ['goldenapple', 'Golden Apple', 9, 3e12, 'metal'],
-  ['dragonfruit', 'Dragon Fruit', 9, 5e12, 'squish'],
-  ['rainbowcake', 'Rainbow Cake', 9, 8.5e12, 'soft'],
-  ['dango', 'Dango', 9, 14e12, 'jelly'],
-  ['ghostpepper', 'Ghost Pepper', 9, 25e12, 'squish'],
-  ['lavacake', 'Lava Cake', 9, 42e12, 'jelly'],
-  ['hotwings', 'Hot Wings', 9, 72e12, 'meat'],
-  ['starfruit', 'Star Fruit', 10, 120e12, 'cosmic'],
-  ['mooncheese', 'Moon Cheese', 10, 210e12, 'cosmic'],
-  ['nebulajelly', 'Nebula Jelly', 10, 350e12, 'cosmic'],
+  // id, name, rarity, price (money; the tuned per-tier list, see Pacing above), kind (splash sound), [blank, grip, accent]
+  ['twig', 'Twig Rod', 0, 0, 'crunch', ['#a8743a', '#6b4226', '#e8222c']],
+  ['bamboo', 'Bamboo Rod', 0, 10, 'crunch', ['#c8d860', '#6a8a2a', '#e8222c']],
+  ['wooden', 'Wooden Rod', 0, 15, 'squish', ['#b07a44', '#4a2f1c', '#e8222c']],
+  ['oak', 'Oak Rod', 0, 25, 'squish', ['#8b5a33', '#3a2414', '#ff8a1a']],
+  ['fiberglass', 'Fiberglass Rod', 1, 38, 'squish', ['#f2f2e8', '#2a2a2a', '#3fa6ff']],
+  ['pine', 'Pine Rod', 1, 60, 'squish', ['#d8b070', '#3a5a2a', '#69e05a']],
+  ['birch', 'Birch Rod', 1, 98, 'squish', ['#f0ece0', '#2a2a2a', '#ff5a5a']],
+  ['angler', 'Angler Rod', 1, 190, 'squish', ['#3a6ad0', '#1a1a2a', '#ffd23a']],
+  ['carbon', 'Carbon Rod', 2, 400, 'squish', ['#2a2a30', '#e83a3a', '#e83a3a']],
+  ['steel', 'Steel Rod', 2, 980, 'crunch', ['#9aa2ae', '#2a2a2a', '#3fa6ff']],
+  ['coral', 'Coral Rod', 2, 2500, 'crunch', ['#ff7aa8', '#c82a6a', '#ffffff']],
+  ['reef', 'Reef Rod', 2, 4500, 'soft', ['#3ad0c0', '#1a5a6a', '#ffd23a']],
+  ['lucky', 'Lucky Rod', 3, 8200, 'soft', ['#3fd23a', '#1a5a1a', '#ffd23a']],
+  ['neon', 'Neon Rod', 3, 15000, 'squish', ['#ff3fd2', '#1a1a2a', '#3affff']],
+  ['candy', 'Candy Rod', 3, 35000, 'squish', ['#ff9ad8', '#ffffff', '#7ae8ff']],
+  ['frost', 'Frost Rod', 3, 68000, 'crunch', ['#bfeaff', '#3a7ad0', '#ffffff']],
+  ['golden', 'Golden Rod', 4, 130000, 'crunch', ['#ffd23a', '#8a5a1a', '#ff3a3a']],
+  ['royal', 'Royal Rod', 4, 450000, 'soft', ['#7a3ad0', '#ffd23a', '#ffd23a']],
+  ['sakura', 'Sakura Rod', 4, 900000, 'soft', ['#ffd6ea', '#8a3a5a', '#ff5fa8']],
+  ['thunder', 'Thunder Rod', 4, 2800000, 'soft', ['#3a3a6a', '#ffd23a', '#7ae8ff']],
+  ['lava', 'Lava Rod', 5, 5800000, 'crunch', ['#3a2020', '#ff5a1a', '#ffcc33']],
+  ['shark', 'Shark Rod', 5, 12000000, 'soft', ['#7a8aa0', '#2a3a4a', '#ffffff']],
+  ['kraken', 'Kraken Rod', 5, 28000000, 'soft', ['#5a2a8a', '#2a1a3a', '#ff5fd2']],
+  ['phoenix', 'Phoenix Rod', 5, 90000000, 'crunch', ['#ff7a1a', '#a81a1a', '#ffe14a']],
+  ['rainbow', 'Rainbow Rod', 6, 280000000, 'crunch', ['#ff5a5a', '#5a3ad0', '#5aff8a']],
+  ['aurora', 'Aurora Rod', 6, 900000000, 'jelly', ['#7ae8ff', '#3a2a8a', '#c8a0ff']],
+  ['prism', 'Prism Rod', 6, 2500000000, 'soft', ['#e0f8ff', '#7a4bff', '#ff9bd2']],
+  ['sunbeam', 'Sunbeam Rod', 6, 12000000000, 'jelly', ['#fff0a0', '#ff8a1a', '#ffffff']],
+  ['nebula', 'Nebula Rod', 7, 13000000000, 'crunch', ['#7a4bff', '#1a0a3a', '#ff5fd2']],
+  ['comet', 'Comet Rod', 7, 15000000000, 'meat', ['#3affff', '#1a2a5a', '#ffffff']],
+  ['meteor', 'Meteor Rod', 7, 18000000000, 'meat', ['#5a4a4a', '#ff5a1a', '#ffcc33']],
+  ['starlight', 'Starlight Rod', 7, 42000000000, 'soft', ['#1a1a4a', '#ffd23a', '#fff6a0']],
+  ['void', 'Void Rod', 7, 72000000000, 'crunch', ['#0a0a14', '#b04aff', '#b04aff']],
+  ['angel', 'Angel Rod', 8, 120000000000, 'meat', ['#ffffff', '#ffd23a', '#fff0b0']],
+  ['seraph', 'Seraph Rod', 8, 210000000000, 'jelly', ['#fff6d8', '#ff9ad8', '#ffd23a']],
+  ['halo', 'Halo Rod', 8, 350000000000, 'meat', ['#fffaf0', '#c89a3a', '#7ae8ff']],
+  ['shadow', 'Shadow Rod', 9, 600000000000, 'meat', ['#1a1a24', '#3a3a4a', '#e8e8ff']],
+  ['phantom', 'Phantom Rod', 9, 1000000000000, 'soft', ['#c8c8e8', '#4a4a6a', '#ffffff']],
+  ['abyss', 'Abyss Rod', 9, 1800000000000, 'jelly', ['#0a1a3a', '#1a3a6a', '#3affff']],
+  ['trident', 'Trident Rod', 9, 3000000000000, 'metal', ['#ffd23a', '#3a6ad0', '#7ae8ff']],
+  ['leviathan', 'Leviathan Rod', 9, 5000000000000, 'squish', ['#1a5a6a', '#0a2a3a', '#7dff4a']],
+  ['dragon', 'Dragon Rod', 9, 8500000000000, 'soft', ['#c82a2a', '#2a1a1a', '#ffd23a']],
+  ['crystal', 'Crystal Rod', 9, 14000000000000, 'jelly', ['#9fe8ff', '#c8a0ff', '#ffffff']],
+  ['obsidian', 'Obsidian Rod', 9, 25000000000000, 'squish', ['#1a1020', '#ff6a1a', '#ff6a1a']],
+  ['eclipse', 'Eclipse Rod', 9, 42000000000000, 'jelly', ['#1a1a2a', '#ffd23a', '#ff7a1a']],
+  ['ancient', 'Ancient Rod', 9, 72000000000000, 'meat', ['#8a7a5a', '#3a3a2a', '#3ad0a0']],
+  ['cosmic', 'Cosmic Rod', 10, 120000000000000, 'cosmic', ['#3a1a8a', '#0a0a2a', '#3affff']],
+  ['infinity', 'Infinity Rod', 10, 210000000000000, 'cosmic', ['#ffffff', '#7a4bff', '#ff5fd2']],
+  ['omega', 'Omega Rod', 10, 350000000000000, 'cosmic', ['#ffd23a', '#1a0a3a', '#7ffcff']],
+  // The deep-sea set (from the reference Rods window): each has its own head piece (ROD_TOPS).
+  ['atlantean', 'Atlantean Rod', 10, 600000000000000, 'metal', ['#2a8fd0', '#0a2a4a', '#7dffd4']],
+  ['leviathancrown', "Leviathan's Crown Rod", 10, 1000000000000000, 'metal', ['#1a3a6a', '#0a1a3a', '#ffd23a']],
+  ['rift', 'Rift Rod', 10, 1700000000000000, 'cosmic', ['#16101e', '#c03ac0', '#ff4fd8']],
+  ['voideye', 'Void Eye Rod', 10, 2900000000000000, 'cosmic', ['#1a0a3a', '#0a0a14', '#b04aff']],
 ]
 export const FOODS = [
-  // Special: Robux in the reference, money here. Distance of tier 14, luck of tier 16, priced as tier 17.
-  { id: 'galaxydonut', name: 'Galaxy Donut', rarity: 11, tier: 0, special: true, price: 130e3, dist: FOOD_DIST(14), luck: FOOD_LUCK(16), kind: 'cosmic' },
-  ...FOOD_LIST.map(([id, name, rarity, price, kind], i) => ({ id, name, rarity, tier: i + 1, price, dist: FOOD_DIST(i + 1), luck: FOOD_LUCK(i + 1), kind })),
+  // Special: premium currency in the reference, money here. Distance of tier 14, luck of tier 16, priced as tier 17.
+  { id: 'galaxy', name: 'Galaxy Rod', rarity: 11, tier: 0, special: true, price: 130e3, dist: FOOD_DIST(14), luck: FOOD_LUCK(16), kind: 'cosmic', colors: ['#2a1a6a', '#0a0a2a', '#c07dff'] },
+  ...FOOD_LIST.map(([id, name, rarity, price, kind, colors], i) => ({ id, name, rarity, tier: i + 1, price, dist: FOOD_DIST(i + 1), luck: FOOD_LUCK(i + 1), kind, colors })),
 ]
-export const STARTER_FOOD = 'carrot'
+// Head pieces some rods wear on the tip (game/foods.js buildRod): the rarer rods stand out in the
+// shop and in the hand. trident / bolt / flame / crown / cube / eye / star / wing / halo / fin.
+export const ROD_TOPS = {
+  coral: 'fin',
+  thunder: 'bolt',
+  lava: 'flame',
+  phoenix: 'flame',
+  royal: 'crown',
+  angel: 'wing',
+  halo: 'halo',
+  trident: 'trident',
+  leviathan: 'fin',
+  dragon: 'flame',
+  starlight: 'star',
+  atlantean: 'trident',
+  leviathancrown: 'crown',
+  rift: 'cube',
+  voideye: 'eye',
+}
+export const STARTER_FOOD = 'twig'
+
+// --- Tackle: baits, trails and the boost shelf (ui/tackleShop.js, game/state.js) ------------------
+// Everything is bought with money (never premium currency, see the root CLAUDE.md). The reference
+// shows a few Robux prices (Jackpot Bait, the premium trails): here they cost fair, slightly high,
+// money. Rarity = an index into FOOD_RARITIES (card colours, effects).
+// BAITS: bought in packs (`pack` casts each), one bait is equipped; every cast uses one and its
+// `luck` multiplies the cast's luck. `dyn` = priced from your income like the Lucky Cast
+// ({ min, secs }: max(min, income x secs)). `guarantee` = the cast always brings an animal of at
+// least that RARITIES index (6 = Secret). `kind` picks the 3D model (game/foods.js buildBait).
+export const BAITS = [
+  { id: 'worm', name: 'Worm Bait', rarity: 0, luck: 1.1, pack: 10, price: 400, kind: 'worm', colors: ['#ff7aa0', '#c8456a', '#ffd0dc'] },
+  { id: 'minnow', name: 'Minnow Bait', rarity: 0, luck: 1.15, pack: 10, price: 2500, kind: 'minnow', colors: ['#9ab8d8', '#4a6a98', '#ffffff'] },
+  { id: 'grub', name: 'Grub Bait', rarity: 1, luck: 1.2, pack: 10, price: 15e3, kind: 'grub', colors: ['#f4e8b8', '#c8a860', '#6a4a20'] },
+  { id: 'cricket', name: 'Cricket Bait', rarity: 1, luck: 1.25, pack: 10, price: 80e3, kind: 'cricket', colors: ['#6a8a2a', '#3a4a14', '#c8e060'] },
+  { id: 'shrimp', name: 'Shrimp Bait', rarity: 2, luck: 1.3, pack: 10, price: 450e3, kind: 'shrimp', colors: ['#ff9a8a', '#d85a4a', '#ffe0d0'] },
+  { id: 'glowworm', name: 'Glow Worm', rarity: 2, luck: 1.35, pack: 10, price: 2.2e6, kind: 'worm', glow: true, colors: ['#7dff4a', '#2a8a1a', '#d8ffb0'] },
+  { id: 'firefly', name: 'Firefly Bait', rarity: 3, luck: 1.4, pack: 10, price: 10e6, kind: 'firefly', colors: ['#3a3a2a', '#ffe14a', '#ffffff'] },
+  { id: 'crystalbait', name: 'Crystal Bait', rarity: 3, luck: 1.5, pack: 10, price: 35e6, kind: 'crystal', colors: ['#9fe8ff', '#5a9aff', '#ffffff'] },
+  { id: 'golden', name: 'Golden Lure', rarity: 4, luck: 1.75, pack: 10, price: 100e6, kind: 'lure', colors: ['#ffd23a', '#a8721a', '#fff6a0'] },
+  { id: 'thunderlure', name: 'Thunder Lure', rarity: 4, luck: 1.85, pack: 10, price: 1.2e9, kind: 'lure', top: 'bolt', colors: ['#3a6aff', '#1a2a8a', '#ffe14a'] },
+  { id: 'rainbow', name: 'Rainbow Lure', rarity: 5, luck: 2, pack: 10, price: 15e9, kind: 'rainbow', colors: ['#ff5a5a', '#ffd84a', '#5ac8ff'] },
+  { id: 'magma', name: 'Magma Lure', rarity: 5, luck: 2.25, pack: 10, price: 90e9, kind: 'lure', top: 'flame', glow: true, colors: ['#ff5a1a', '#3a1410', '#ffd23a'] },
+  { id: 'starlure', name: 'Star Lure', rarity: 6, luck: 2.5, pack: 10, price: 600e9, kind: 'lure', top: 'star', glow: true, colors: ['#8affea', '#2a8a8a', '#ffffff'] },
+  { id: 'nebulalure', name: 'Nebula Lure', rarity: 7, luck: 3, pack: 10, price: 4e12, kind: 'lure', top: 'star', glow: true, colors: ['#7a4bff', '#1a0a3a', '#ff5fd2'] },
+  { id: 'angellure', name: 'Angel Lure', rarity: 8, luck: 3.5, pack: 10, price: 30e12, kind: 'lure', top: 'halo', glow: true, colors: ['#ffffff', '#ffd23a', '#fff0b0'] },
+  { id: 'shadowlure', name: 'Shadow Lure', rarity: 9, luck: 4, pack: 10, price: 200e12, kind: 'lure', top: 'eye', glow: true, colors: ['#1a1a24', '#3a3a4a', '#e8e8ff'] },
+  { id: 'jackpot', name: 'Jackpot Bait', rarity: 9, luck: 1, pack: 1, dyn: { min: 5e8, secs: 6000 }, kind: 'jackpot', guarantee: 6, note: 'GUARANTEED SECRET CAST!', colors: ['#ffd23a', '#e8222c', '#fff6a0'] },
+  { id: 'infinitylure', name: 'Infinity Lure', rarity: 10, luck: 5, pack: 10, price: 1.5e15, kind: 'lure', top: 'halo', glow: true, colors: ['#ffffff', '#7a4bff', '#ff5fd2'] },
+]
+
+// TRAILS: a trail follows your rod: it streams behind the bobber when you cast and drifts behind
+// you in the hub. `ribbon` colours the streak behind the bobber ('rainbow' cycles, null = the
+// rod's own glow); `parts` are the particle emitters (rate = per second, s = SPR key, c = colours,
+// size / life ranges, spread = sideways m/s, up, back = m/s it drifts behind, grav, glow =
+// additive, hue = cycle the colour). Order = card order in the Trail Shop.
+const P = (s, c, o = {}) => ({ s, c, size: [0.3, 0.55], life: [0.5, 1], rate: 24, spread: 0.7, up: 0.3, back: 0.5, grav: 0, glow: true, ...o })
+export const TRAILS = [
+  { id: 'goldenwhale', name: 'Golden Whale', rarity: 4, price: 400e9, ribbon: ['#ffe14a', '#fff6c0'], parts: [P('sparkle', ['#ffe14a', '#fff6c0', '#ffffff'], { rate: 36, size: [0.35, 0.7] }), P('bubble', ['#9fe8ff', '#ffffff'], { rate: 12, glow: false, size: [0.3, 0.5], up: 1.2, life: [0.7, 1.2] }), P('gem', ['#ffd23a'], { rate: 8, size: [0.25, 0.4], grav: -2, glow: false })] },
+  { id: 'rainbow', name: 'Rainbow', rarity: 6, price: 20e9, ribbon: 'rainbow', parts: [P('sparkle', ['#ff5a5a'], { hue: true, rate: 40, size: [0.35, 0.7] }), P('dot', ['#ff5a5a'], { hue: true, rate: 40, size: [0.4, 0.7], life: [0.6, 1.1] })] },
+  { id: 'galaxystardust', name: 'Galaxy Stardust', rarity: 7, price: 150e9, ribbon: ['#c07dff', '#7ae8ff'], parts: [P('star', ['#ffffff', '#ff9bd2', '#c8a0ff', '#7ae8ff'], { rate: 26, size: [0.3, 0.6], spin: 3 }), P('sparkle', ['#ffffff', '#ffd6f5'], { rate: 30 }), P('dot', ['#7a4bff', '#ff5fd2'], { rate: 30, size: [0.5, 0.9], life: [0.8, 1.3] })] },
+  { id: 'comet', name: 'Comet', rarity: 5, price: 60e9, ribbon: ['#ffb02a', '#fff0b0'], parts: [P('flame', ['#ff9a2a', '#ffd23a', '#ff5a1a'], { rate: 40, size: [0.5, 0.9], life: [0.4, 0.8] }), P('crumb', ['#ffcc66', '#e8a040'], { rate: 20, size: [0.2, 0.35], glow: false, grav: -3, spread: 1.4 }), P('star', ['#ffffff'], { rate: 10 })] },
+  { id: 'sprinkledonut', name: 'Sprinkle Donut', rarity: 3, price: 5e9, ribbon: ['#ff9ad8', '#fff0f8'], parts: [P('square', ['#ff5fa8', '#ffffff', '#5ae8ff', '#ffe14a', '#8aff6a'], { rate: 44, size: [0.16, 0.26], glow: false, grav: -4, spread: 1.2, life: [0.6, 1.1], spin: 6 }), P('sparkle', ['#ffffff'], { rate: 12 })] },
+  { id: 'bubbles', name: 'Bubbles', rarity: 0, price: 1e3, ribbon: null, parts: [P('bubble', ['#bfeaff', '#ffffff'], { rate: 26, glow: false, size: [0.25, 0.6], up: 1.3, life: [0.8, 1.4] })] },
+  { id: 'leafy', name: 'Leafy', rarity: 1, price: 1e6, ribbon: ['#7dff4a', '#e8ffb0'], parts: [P('leaf', ['#5ad23a', '#9aff5a', '#e8c84a'], { rate: 28, glow: false, size: [0.3, 0.5], grav: -1.4, spin: 4, life: [0.8, 1.4], spread: 1 })] },
+  { id: 'splash', name: 'Splash', rarity: 2, price: 1e9, ribbon: ['#5fc0ff', '#ffffff'], parts: [P('bubble', ['#7ad0ff', '#ffffff', '#3fa6ff'], { rate: 36, glow: false, size: [0.2, 0.5], grav: -5, spread: 1.6, up: 1.4, life: [0.5, 0.9] }), P('dot', ['#ffffff'], { rate: 24, size: [0.2, 0.35] })] },
+  { id: 'hearts', name: 'Lovely Hearts', rarity: 1, price: 25e3, ribbon: ['#ff7aa8', '#ffe0ec'], parts: [P('heart', ['#ff5f8a', '#ff9ab8', '#ffffff'], { rate: 16, glow: false, size: [0.35, 0.6], up: 1.1, life: [0.8, 1.3] })] },
+  { id: 'notes', name: 'Melody', rarity: 1, price: 400e3, ribbon: ['#c8a0ff', '#ffffff'], parts: [P('note', ['#ffffff', '#ffd84a', '#7ae8ff', '#ff9ad8'], { rate: 12, glow: false, size: [0.4, 0.65], up: 1, life: [0.9, 1.4] })] },
+  { id: 'snowfall', name: 'Snowfall', rarity: 2, price: 12e6, ribbon: ['#bfeaff', '#ffffff'], parts: [P('snow', ['#ffffff', '#cfefff'], { rate: 40, glow: false, size: [0.2, 0.4], grav: -1.2, spread: 1.2, life: [0.9, 1.5] }), P('sparkle', ['#e8fbff'], { rate: 10 })] },
+  { id: 'sakura', name: 'Sakura', rarity: 3, price: 60e6, ribbon: ['#ffb0d0', '#fff0f6'], parts: [P('petal', ['#ffb0d0', '#ff8ab8', '#ffe0ec'], { rate: 34, glow: false, size: [0.3, 0.5], grav: -1.3, spin: 4, life: [0.9, 1.5], spread: 1.1 })] },
+  { id: 'fireflies', name: 'Fireflies', rarity: 3, price: 300e6, ribbon: ['#d8ff6a', '#ffffff'], parts: [P('dot', ['#e8ff5a', '#b8ff4a'], { rate: 26, size: [0.3, 0.55], up: 0.5, spread: 1.4, life: [1, 1.8] }), P('sparkle', ['#ffffd0'], { rate: 10 })] },
+  { id: 'flames', name: 'Blazing Flames', rarity: 4, price: 3e9, ribbon: ['#ff5a1a', '#ffd23a'], parts: [P('flame', ['#ff5a1a', '#ff9a2a', '#ffd23a'], { rate: 46, size: [0.5, 0.9], life: [0.35, 0.7], up: 0.8 }), P('dot', ['#ffcc33'], { rate: 20, size: [0.2, 0.3], grav: -1 })] },
+  { id: 'gems', name: 'Gem Rain', rarity: 5, price: 250e9, ribbon: ['#9fe8ff', '#ff9bd2'], parts: [P('gem', ['#5ae8ff', '#ff6aa8', '#7dff4a', '#ffd23a', '#c07dff'], { rate: 20, glow: false, size: [0.3, 0.5], grav: -3, spin: 4, spread: 1.2 }), P('sparkle', ['#ffffff'], { rate: 24 })] },
+  { id: 'lightning', name: 'Lightning', rarity: 6, price: 900e9, ribbon: ['#ffe14a', '#7ae8ff'], parts: [P('star', ['#ffe14a', '#ffffff'], { rate: 30, size: [0.3, 0.6], life: [0.2, 0.45], spread: 1.6 }), P('sparkle', ['#7ae8ff', '#ffffff'], { rate: 36, life: [0.2, 0.5], spread: 1.8 })] },
+  { id: 'feathers', name: 'Angel Feathers', rarity: 8, price: 6e12, ribbon: ['#ffffff', '#fff0b0'], parts: [P('feather', ['#ffffff', '#fff6d8', '#ffe9a8'], { rate: 20, glow: false, size: [0.4, 0.7], grav: -0.8, spin: 3, life: [1, 1.7], spread: 1 }), P('sparkle', ['#fff6c0'], { rate: 24 })] },
+  { id: 'voidtrail', name: 'Void Smoke', rarity: 9, price: 30e12, ribbon: ['#b04aff', '#14081e'], parts: [P('smoke', ['#2a1440', '#5a2a8a', '#14081e'], { rate: 30, glow: false, size: [0.9, 1.5], life: [0.8, 1.3], spread: 0.5 }), P('sparkle', ['#b04aff', '#ffffff'], { rate: 22 })] },
+  { id: 'aurora', name: 'Aurora', rarity: 7, price: 120e12, ribbon: 'rainbow', parts: [P('dot', ['#3affc8'], { hue: true, hueBase: 0.35, hueSpan: 0.3, rate: 44, size: [0.7, 1.1], life: [0.8, 1.4] }), P('sparkle', ['#ffffff'], { rate: 18 })] },
+  { id: 'phoenixtrail', name: 'Phoenix Fire', rarity: 9, price: 500e12, ribbon: ['#ff7a1a', '#ffe14a'], parts: [P('flame', ['#ff5a1a', '#ffb02a', '#ffe14a'], { rate: 44, size: [0.6, 1], life: [0.4, 0.8], up: 0.9 }), P('feather', ['#ff9a2a', '#ffd23a'], { rate: 12, glow: false, size: [0.4, 0.7], grav: -0.8, spin: 3, life: [1, 1.5] }), P('sparkle', ['#ffe14a'], { rate: 24 })] },
+  { id: 'cosmictrail', name: 'Cosmic Rings', rarity: 10, price: 1.5e15, ribbon: 'rainbow', parts: [P('ring', ['#7ae8ff', '#ff5fd2', '#ffe14a'], { rate: 10, size: [0.6, 1.2], life: [0.6, 1], spread: 0.3 }), P('star', ['#ffffff', '#c8a0ff', '#7ae8ff'], { rate: 28, spin: 3 }), P('sparkle', ['#ffffff'], { rate: 26 })] },
+]
+
+// The boost shelf in the Shop window: potions, free Lucky Casts and Season Lures, priced from your
+// income (max(min, income x secs)) so they stay worth buying all game. Money only.
+export const BOOST_SHOP = [
+  { id: 'luck15', name: 'Luck Potion', desc: 'Luck x2 for 15 minutes', icon: '\u{1F340}', potion: 'luck', minutes: 15, min: 2e3, secs: 900 },
+  { id: 'luck60', name: 'Big Luck Potion', desc: 'Luck x2 for 1 hour', icon: '\u{1F340}', potion: 'luck', minutes: 60, min: 7500, secs: 3200 },
+  { id: 'cash15', name: 'Income Potion', desc: 'Income x2 for 15 minutes', icon: '\u{1F4B0}', potion: 'cash', minutes: 15, min: 3e3, secs: 1500 },
+  { id: 'cash60', name: 'Big Income Potion', desc: 'Income x2 for 1 hour', icon: '\u{1F4B0}', potion: 'cash', minutes: 60, min: 12e3, secs: 5200 },
+  { id: 'lucky1', name: 'Lucky Cast', desc: 'A free 100x luck cast', icon: '\u{1F3B0}', lucky: 1, min: 3e3, secs: 520 },
+  { id: 'lucky5', name: 'Lucky Cast x5', desc: 'Five free 100x luck casts', icon: '\u{1F3B0}', lucky: 5, min: 14e3, secs: 2300 },
+  { id: 'lure1', name: 'Season Lure', desc: 'The next cast brings out a season animal', icon: '\u{1F380}', lure: 1, min: 2e4, secs: 1800 },
+  { id: 'lure3', name: 'Season Lure x3', desc: 'Three season animals, one per cast', icon: '\u{1F380}', lure: 3, min: 5e4, secs: 5000 },
+]
 
 // Throw range = the food's distance x (1 + strength bonus), at most maxRange. The bonus is
 // strengthPct per Throwing Strength point (training levels give 5, every throw 1), capped.
@@ -980,12 +1093,26 @@ export const repXp = (tier) => {
   return Math.max(1, Math.round(TRAINING.benches[tier].xps * (r.up + r.hold + r.down + r.rest)))
 }
 
-// The throw sequence (game/throw.js + ui/throwUi.js). Step onto the yellow band at the lane
-// mouth: the camera settles behind you, a power meter sweeps up and down, tap to throw. The
-// camera chases the food down the lane (luck climbs with every metre), slow-mo touchdown,
-// then a baddie comes out to eat it and is revealed on a card.
+// Pen growth: every capacity upgrade moves your pen's north fence out toward the river (the south
+// fence stays put). The gate, the capacity sign, the upgrade pad and the Training Bench move with
+// it, so the north-most thing in front of a pen is the bench's dashed ring. `stopZ` = the line it
+// must stay south of: the Rod / Bait / Trail shop rings plus a little gap. `max` = metres the fence
+// moves at full capacity (~7.7 m); growth(level) = metres at that capacity level.
+PENS.grow = {
+  stopZ: Math.max(POI.foodShop.z, POI.baitShop.z, POI.trailShop.z) + Math.max(POI.foodShop.r, POI.baitShop.r, POI.trailShop.r) + 0.8,
+}
+PENS.grow.max = TRAINING.spot.z + TRAINING.padGap / 2 - TRAINING.ringR - PENS.grow.stopZ
+PENS.grow.at = (level) => {
+  const levels = (ECONOMY.maxCapacity - ECONOMY.startCapacity) / ECONOMY.capacityStep
+  return PENS.grow.max * Math.min(1, Math.max(0, level) / levels)
+}
+
+// The cast sequence (game/throw.js + ui/throwUi.js). Step onto the yellow band at the river
+// mouth: the camera settles behind you, a power meter sweeps up and down, tap to cast. The
+// camera chases the bobber down the river (luck climbs with every metre), slow-mo splashdown,
+// then an animal bites, bursts out of the water and is revealed on a card.
 export const THROW_MODE = {
-  band: { north: -31.75, south: -26.6, halfWidth: 8.6 }, // the yellow band (z range, |x|)
+  band: { north: -31.75, south: -26.6, halfWidth: 17.6 }, // the yellow band (z range, |x|)
   spot: { x: 0, z: -29.2 }, // where you stand on it
   meterSpeed: 0.95, // full bottom -> top sweeps per second
   minPower: 0.12, // the bottom of the meter still throws this fraction of your range
@@ -997,6 +1124,20 @@ export const THROW_MODE = {
     { min: 0.4, name: 'GOOD', color: '#ffd23a', luck: 1 },
     { min: 0, name: 'WEAK', color: '#ff8a3a', luck: 1 },
   ],
+  // The cast show, one per grade above (game/throw.js lockIn / launch, ui/throwUi.js castShow,
+  // sfx.castShow / castRelease). windup = s the rod is held back before the release (hero = the
+  // camera swings round to the front-left of you meanwhile), title / style = the big banner
+  // (style picks its letter colours), frame = the screen border (gold: speed rays + grid + golden
+  // edges, silver: lighter), screen = flat confetti bursting on screen, cubes = 3D confetti cubes
+  // at the release. Pose (radians): arm = how far the rod swings back over your head, lean = body
+  // lean back in the windup, lunge = lean forward at the release, hop = m jumped in the windup.
+  // A Jackpot Bait or Lucky Cast upgrades the show to at least GREAT ("SECRET CAST!" / "LUCKY CAST!").
+  castFx: [
+    { title: 'PERFECT CAST!', style: 'rainbow', frame: 'gold', windup: 1.0, hero: true, screen: 26, cubes: 44, arm: 3.05, lean: 0.3, lunge: -0.34, hop: 0.55, shake: 0.3, life: 2.6 },
+    { title: 'GREAT CAST!', style: 'lime', frame: 'silver', windup: 0.7, hero: true, screen: 12, cubes: 22, arm: 2.9, lean: 0.22, lunge: -0.28, hop: 0.25, shake: 0.15, life: 2.2 },
+    { title: 'GOOD CAST', style: 'gold', frame: '', windup: 0.42, hero: false, screen: 0, cubes: 8, arm: 2.7, lean: 0.16, lunge: -0.22, hop: 0, shake: 0, life: 1.8 },
+    { title: 'WEAK CAST...', style: 'weak', frame: '', windup: 0.36, hero: false, screen: 0, cubes: 0, arm: 2.15, lean: 0.06, lunge: -0.08, hop: 0, shake: 0, life: 1.6 },
+  ],
   luckPerMeters: 75, // the luck multiplier climbs +1x for every this many metres flown
   slowMo: { last: 0.42, scale: 0.28 }, // s of flight before touchdown played in slow motion, time scale
   hitStop: 0.08, // s frozen on impact
@@ -1004,17 +1145,26 @@ export const THROW_MODE = {
   lucky: { mult: 100, minPrice: 2500, incomeSeconds: 420 },
   auto: { stopAt: [0.8, 0.99], continueAfter: 1.0, revealHold: 1.9 },
   typeEvery: 0.085, // s per letter of the name reveal
-  // The girl picks the food up in both hands and eats it from them (s unless noted):
-  // bend down (reach), the food leaves the ground at grab for grabLen, she straightens and
-  // lifts it to her mouth (lift), bites, then a short beat (after) before the reveal.
-  eat: { reach: 0.55, grab: 0.4, grabLen: 0.35, lift: 0.5, bites: 3, biteEvery: 0.42, after: 0.25, holdScale: 0.62, biteShrink: 0.72, inFront: 0.1, skipSpeed: 3.5 },
+  // The rod in hand (m): length, shoulder height above the feet, how far the bobber hangs under
+  // the tip while aiming, the bobber's size.
+  rod: { length: 2.6, shoulder: 1.55, hang: 0.8, bobber: 0.42 },
+  // The bite (s unless noted): nibbles on the bobber, the hook hangs hookDepth m under the water,
+  // the animal swims in from swimFrom m upstream for `swim` s and bites, the bobber is yanked
+  // under for `tug` s, then it bursts out of the water (leap m high) over `burst` s.
+  bite: {
+    nibbles: 2, hookDepth: 2.2, swimFrom: 7, swim: 1.7, tug: 0.75, burst: 1.0, leap: 1.6,
+    // The animal's-eye view before the reveal: it searches (s), spots the bait, swims in (`swim`),
+    // lunges (s) and the bite lands. FOVs in degrees: wide when searching, narrowing as it closes in.
+    pov: { search: 1.0, lunge: 0.28, fov0: 96, fov1: 52, fovLunge: 82, beatFrom: 0.8, beatTo: 0.3 },
+  },
   // Camera shots (metres, degrees).
   cam: {
     aim: { back: 6.4, up: 4.4, side: 1.6, lookAhead: 34, lookUp: -5.5, fov: 60 },
+    // PERFECT / GREAT windup: in front of you and to your left, looking back at you (side -x, ahead = toward the river).
+    hero: { side: -5.6, ahead: 3.6, up: 2.1, lookUp: 1.9, fov: 50 },
     chase: { back: 3.6, up: 1.1, fov: 82 },
-    landed: { radius: 5.4, up: 2, fov: 54, orbit: 0.22 },
-    meet: { radius: 8.5, up: 3.2, fov: 58 },
-    reveal: { dist: 4.1, up: 1.55, fov: 44 },
+    landed: { radius: 5.2, up: 1.6, fov: 54, orbit: 0.22 },
+    reveal: { dist: 4.1, up: 1.55, fov: 44, yaw: 0.55 }, // yaw: the animal turns three-quarters to the camera
   },
 }
 
@@ -1055,60 +1205,60 @@ export const UPGRADES = [
 // 0-based), level (training level), size (own one this size), variant (catch one this variant),
 // rarity (catch one this rarity), dist (throw n metres), streak (PERFECT streak), index (pages done).
 export const QUESTS = [
-  { id: 'catch1', text: 'Throw food at a baddie in the lane', reward: 50 },
-  { id: 'train1', text: 'Do pull-ups at the Training Bench', reward: 100 },
-  { id: 'bench1', text: 'Upgrade your Training Bench on its pad', reward: 150 },
-  { id: 'food1', text: 'Buy new food', reward: 150 },
-  { id: 'area2', text: 'Throw into Area 2: Harvest Farm', reward: 200, goal: { type: 'area', n: 2 } },
-  { id: 'catch5', text: 'Catch 5 baddies', reward: 400 },
+  { id: 'catch1', text: 'Cast your rod into the river', reward: 50 },
+  { id: 'train1', text: 'Do pull-ups at the pull-up bar', reward: 100 },
+  { id: 'bench1', text: 'Upgrade your pull-up bar on its pad', reward: 150 },
+  { id: 'food1', text: 'Buy a new rod', reward: 150 },
+  { id: 'area2', text: 'Cast into Area 2: Farm Creek', reward: 200, goal: { type: 'area', n: 2 } },
+  { id: 'catch5', text: 'Catch 5 animals', reward: 400 },
   { id: 'pen1', text: 'Upgrade your pen', reward: 800 },
   { id: 'level10', text: 'Reach Training Level 10', reward: 300, secs: 20, goal: { type: 'level', n: 10 } },
-  { id: 'area3', text: 'Throw into Area 3: Willow Lake', reward: 500, secs: 30, goal: { type: 'area', n: 3 } },
-  { id: 'fuse1', text: 'Fuse 3 baddies in the Fuse Machine', reward: 2500 },
-  { id: 'food2', text: 'Buy new food', reward: 6000 },
-  { id: 'dist50', text: 'Throw 50 metres', reward: 1000, secs: 30, goal: { type: 'dist', n: 50 } },
-  { id: 'rare1', text: 'Catch a Rare baddie', reward: 9000 },
-  { id: 'area4', text: 'Throw into Area 4: Desert Canyon', reward: 2000, secs: 40, goal: { type: 'area', n: 4 } },
-  { id: 'streak3', text: 'Throw 3 PERFECTs in a row', reward: 2000, secs: 30, goal: { type: 'streak', n: 3 } },
-  { id: 'food3', text: 'Buy new food', reward: 25000 },
-  { id: 'catch25', text: 'Catch 25 baddies', reward: 5000, secs: 40, goal: { type: 'catches', n: 25 } },
+  { id: 'area3', text: 'Cast into Area 3: Willow Lake', reward: 500, secs: 30, goal: { type: 'area', n: 3 } },
+  { id: 'fuse1', text: 'Fuse 3 animals in the Fuse Machine', reward: 2500 },
+  { id: 'food2', text: 'Buy a new rod', reward: 6000 },
+  { id: 'dist50', text: 'Cast 50 metres', reward: 1000, secs: 30, goal: { type: 'dist', n: 50 } },
+  { id: 'rare1', text: 'Catch a Rare animal', reward: 9000 },
+  { id: 'area4', text: 'Cast into Area 4: Desert Oasis', reward: 2000, secs: 40, goal: { type: 'area', n: 4 } },
+  { id: 'streak3', text: 'Cast 3 PERFECTs in a row', reward: 2000, secs: 30, goal: { type: 'streak', n: 3 } },
+  { id: 'food3', text: 'Buy a new rod', reward: 25000 },
+  { id: 'catch25', text: 'Catch 25 animals', reward: 5000, secs: 40, goal: { type: 'catches', n: 25 } },
   { id: 'bench3', text: 'Upgrade to the Neon Arena bench', reward: 5000, secs: 40, goal: { type: 'bench', n: 3 } },
-  { id: 'epic1', text: 'Catch an Epic baddie', reward: 60000 },
-  { id: 'area5', text: 'Throw into Area 5: Frost Peaks', reward: 10000, secs: 50, goal: { type: 'area', n: 5 } },
-  { id: 'gold1', text: 'Catch a GOLD baddie', reward: 10000, secs: 50, goal: { type: 'variant', n: 1 } },
+  { id: 'epic1', text: 'Catch an Epic animal', reward: 60000 },
+  { id: 'area5', text: 'Cast into Area 5: Frozen River', reward: 10000, secs: 50, goal: { type: 'area', n: 5 } },
+  { id: 'gold1', text: 'Catch a GOLD animal', reward: 10000, secs: 50, goal: { type: 'variant', n: 1 } },
   { id: 'index1', text: 'Complete a page of the Index', reward: 10000, secs: 50, goal: { type: 'index', n: 1 } },
-  { id: 'area6', text: 'Throw into Area 6: Autumn Grove', reward: 20000, secs: 60, goal: { type: 'area', n: 6 } },
-  { id: 'huge1', text: 'Fuse a HUGE baddie', reward: 20000, secs: 60, goal: { type: 'size', n: 2 } },
-  { id: 'dist150', text: 'Throw 150 metres', reward: 20000, secs: 60, goal: { type: 'dist', n: 150 } },
-  { id: 'area7', text: 'Throw into Area 7: Crystal Falls', reward: 50000, secs: 70, goal: { type: 'area', n: 7 } },
-  { id: 'legend1', text: 'Catch a Legendary baddie', reward: 50000, secs: 70, goal: { type: 'rarity', n: 4 } },
-  { id: 'catch100', text: 'Catch 100 baddies', reward: 50000, secs: 70, goal: { type: 'catches', n: 100 } },
-  { id: 'area8', text: 'Throw into Area 8: Sunset Beach', reward: 100000, secs: 80, goal: { type: 'area', n: 8 } },
-  { id: 'streak5', text: 'Throw 5 PERFECTs in a row', reward: 100000, secs: 60, goal: { type: 'streak', n: 5 } },
-  { id: 'food20', text: 'Buy the Croissant', reward: 100000, secs: 80, goal: { type: 'food', n: 20 } },
-  { id: 'area9', text: 'Throw into Area 9: Coral Reef', reward: 200000, secs: 90, goal: { type: 'area', n: 9 } },
-  { id: 'diamond1', text: 'Catch a DIAMOND baddie', reward: 200000, secs: 90, goal: { type: 'variant', n: 2 } },
-  { id: 'area10', text: 'Throw into Area 10: Cloud Heaven', reward: 500000, secs: 100, goal: { type: 'area', n: 10 } },
-  { id: 'giant1', text: 'Fuse a GIANT baddie', reward: 500000, secs: 100, goal: { type: 'size', n: 3 } },
-  { id: 'area11', text: 'Throw into Area 11: Lava Inferno', reward: 1e6, secs: 110, goal: { type: 'area', n: 11 } },
-  { id: 'dist300', text: 'Throw 300 metres', reward: 1e6, secs: 110, goal: { type: 'dist', n: 300 } },
-  { id: 'area12', text: 'Throw into Area 12: Cosmic Rift', reward: 2e6, secs: 180, goal: { type: 'area', n: 12 } },
-  { id: 'mythic1', text: 'Catch a Mythic baddie', reward: 2e6, secs: 120, goal: { type: 'rarity', n: 5 } },
-  { id: 'titan1', text: 'Fuse a TITAN baddie', reward: 5e6, secs: 300, goal: { type: 'size', n: 4 } },
-  { id: 'rainbow1', text: 'Catch a RAINBOW baddie', reward: 5e6, secs: 300, goal: { type: 'variant', n: 3 } },
+  { id: 'area6', text: 'Cast into Area 6: Maple Stream', reward: 20000, secs: 60, goal: { type: 'area', n: 6 } },
+  { id: 'huge1', text: 'Fuse a HUGE animal', reward: 20000, secs: 60, goal: { type: 'size', n: 2 } },
+  { id: 'dist150', text: 'Cast 150 metres', reward: 20000, secs: 60, goal: { type: 'dist', n: 150 } },
+  { id: 'area7', text: 'Cast into Area 7: Crystal Falls', reward: 50000, secs: 70, goal: { type: 'area', n: 7 } },
+  { id: 'legend1', text: 'Catch a Legendary animal', reward: 50000, secs: 70, goal: { type: 'rarity', n: 4 } },
+  { id: 'catch100', text: 'Catch 100 animals', reward: 50000, secs: 70, goal: { type: 'catches', n: 100 } },
+  { id: 'area8', text: 'Cast into Area 8: Sunset Bay', reward: 100000, secs: 80, goal: { type: 'area', n: 8 } },
+  { id: 'streak5', text: 'Cast 5 PERFECTs in a row', reward: 100000, secs: 60, goal: { type: 'streak', n: 5 } },
+  { id: 'food20', text: 'Buy the Thunder Rod', reward: 100000, secs: 80, goal: { type: 'food', n: 20 } },
+  { id: 'area9', text: 'Cast into Area 9: Coral Reef', reward: 200000, secs: 90, goal: { type: 'area', n: 9 } },
+  { id: 'diamond1', text: 'Catch a DIAMOND animal', reward: 200000, secs: 90, goal: { type: 'variant', n: 2 } },
+  { id: 'area10', text: 'Cast into Area 10: Cloud Springs', reward: 500000, secs: 100, goal: { type: 'area', n: 10 } },
+  { id: 'giant1', text: 'Fuse a GIANT animal', reward: 500000, secs: 100, goal: { type: 'size', n: 3 } },
+  { id: 'area11', text: 'Cast into Area 11: Lava Lake', reward: 1e6, secs: 110, goal: { type: 'area', n: 11 } },
+  { id: 'dist300', text: 'Cast 300 metres', reward: 1e6, secs: 110, goal: { type: 'dist', n: 300 } },
+  { id: 'area12', text: 'Cast into Area 12: Cosmic Sea', reward: 2e6, secs: 180, goal: { type: 'area', n: 12 } },
+  { id: 'mythic1', text: 'Catch a Mythic animal', reward: 2e6, secs: 120, goal: { type: 'rarity', n: 5 } },
+  { id: 'titan1', text: 'Fuse a TITAN animal', reward: 5e6, secs: 300, goal: { type: 'size', n: 4 } },
+  { id: 'rainbow1', text: 'Catch a RAINBOW animal', reward: 5e6, secs: 300, goal: { type: 'variant', n: 3 } },
   { id: 'index6', text: 'Complete 6 pages of the Index', reward: 1e7, secs: 300, goal: { type: 'index', n: 6 } },
 ]
 
 // Neighbour plots (offline stand-ins for other players). Names are made up.
 export const NEIGHBOURS = [
-  { name: 'PixelPanda22', hair: '#2a1a12', skin: '#f2c79a', shirt: '#3fa6ff', team: ['meadow_honey', 'farm_cinna', 'meadow_daisy', 'lake_lily', 'meadow_flutter'] },
-  { name: 'sunny_bricks', hair: '#ff9a3c', skin: '#ffe0c4', shirt: '#ff5f8a', team: ['lake_libelle', 'desert_fennie', 'lake_koi', 'farm_moomoo'] },
+  { name: 'PixelPanda22', hair: '#2a1a12', skin: '#f2c79a', shirt: '#3fa6ff', team: ['meadow_goldencarp', 'farm_trout', 'meadow_duck', 'lake_axolotl', 'meadow_koi'] },
+  { name: 'sunny_bricks', hair: '#ff9a3c', skin: '#ffe0c4', shirt: '#ff5f8a', team: ['lake_lakeotter', 'desert_desertcrab', 'lake_blueduck', 'farm_goose'] },
   null, // the player
-  { name: 'MoonLoaf', hair: '#1a1a24', skin: '#e2b08a', shirt: '#7be04a', team: ['desert_mirage', 'snow_polara', 'autumn_kohana', 'beach_flamina', 'farm_wooly', 'snow_crystelle'] },
-  { name: 'TacoTurbo7', hair: '#6b3f22', skin: '#c98e64', shirt: '#ffd54a', team: ['meadow_bunnie', 'meadow_clover', 'farm_chickie'] },
+  { name: 'MoonLoaf', hair: '#1a1a24', skin: '#e2b08a', shirt: '#7be04a', team: ['desert_miragefish', 'snow_penguin', 'autumn_salmon', 'beach_dolphin', 'farm_hayotter', 'snow_seal'] },
+  { name: 'TacoTurbo7', hair: '#6b3f22', skin: '#c98e64', shirt: '#ffd54a', team: ['meadow_swan', 'meadow_pondfrog', 'farm_bullfrog'] },
 ]
 
-// Leaderboard stand-ins: [name, baddies caught, best pull (1 in N), money/s].
+// Leaderboard stand-ins: [name, animals caught, best pull (1 in N), money/s].
 export const BOARD_BOTS = [
   ['StarSprinkle', 31200, 1.2e6, 9.1e9], ['blocky_bea', 18800, 6.5e5, 7.6e9], ['NoodleKnight', 15100, 4.2e5, 6.4e9],
   ['MintyMax', 13900, 2.9e5, 5.0e9], ['ZoomZebra', 12100, 1.9e5, 4.9e8], ['CloudCobbler', 10400, 1.1e5, 4.1e8],
@@ -1126,7 +1276,7 @@ export const FX = {
 
 export const AUDIO = {
   volume: 0.8,
-  storageKey: 'throw-food-for-baddies.sound',
+  storageKey: 'fish-for-secret-animals.sound',
   buses: { ui: 0.8, sfx: 0.9, amb: 0.5, engine: 0.5 },
   duck: 0.5, // world (ambience) level while a menu window is open
   maxVoices: 48,

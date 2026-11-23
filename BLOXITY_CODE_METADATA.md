@@ -1,8 +1,8 @@
 ---
 # Answers to the Bloxity SDK integration questions (docs.bloxity.io, used by audit_sdk / review).
 canDie: false # no death: the game has no way to lose
-hasScore: true # leaderboards: best-pull, baddies-caught, money-per-second (declared in src/config.js, reported by the server)
-rewards: true # rewarded ads: "2x Income", "Cash Boost", "Free Lucky Throw" (config ADS), granted only on `completed` and a server-verified token
+hasScore: true # leaderboards: best-pull, baddies-caught ("Animals caught"), money-per-second (declared in src/config.js, reported by the server)
+rewards: true # rewarded ads: "2x Income", "Cash Boost", "Free Lucky Cast" (config ADS), granted only on `completed` and a server-verified token
 notApplicable:
   - feature: death-screen
     reason: The player cannot die.
@@ -14,7 +14,7 @@ notApplicable:
     reason: The game dresses its own rig with the manual cosmetics path (skin, parts, hat / back); a worn custom character falls back to the standard avatar.
 ---
 
-# Throw Food for Baddies: Bloxity integration notes
+# Fish for Secret Animals: Bloxity integration notes
 
 SDK integrations in the client (`src/bloxity.js` is the only place that calls the SDK):
 

@@ -17,7 +17,7 @@ const SCALE = 12 // x a normal girl: she towers over the lane end
 
 export function createBoss(scene, { fx, sfx, hud, celebrate }) {
   const L = HUB.lane
-  const at = new Vector3(0, L.floorY, L.end + 16)
+  const at = new Vector3(0, L.floorY + L.water - 2.5, L.end + 16) // half out of the water
   let model = null
   let modelSeason = ''
   const bar = dynLabel(9, { lines: 2, width: 900 })
@@ -47,7 +47,7 @@ export function createBoss(scene, { fx, sfx, hud, celebrate }) {
     state.addTickets(B.tickets)
     sfx.upgrade()
     celebrate?.()
-    hud.toast(`\u{1F479} The Giant is full! You fed her ${n}x: +$${cash.toLocaleString()} and ${B.tickets} tickets!`, 'rare')
+    hud.toast(`\u{1F40B} The River Giant is reeled in! You cast ${n}x: +$${cash.toLocaleString()} and ${B.tickets} tickets!`, 'rare')
     if (model) {
       model.mode = 'cheer'
       model.hop()
@@ -79,6 +79,7 @@ export function createBoss(scene, { fx, sfx, hud, celebrate }) {
     if (model && modelSeason === s.season.id) return
     model?.dispose()
     model = new Baddie(girl.id, 0, { showLabel: false })
+    model.ground = false
     modelSeason = s.season.id
     model.group.scale.setScalar(SCALE)
     model.group.position.copy(at)
@@ -114,7 +115,7 @@ export function createBoss(scene, { fx, sfx, hud, celebrate }) {
       const pct = Math.min(1, cur.fill / Math.max(1, cur.need))
       const blocks = Math.round(pct * 10)
       bar.set([
-        { text: cur.won ? '\u{1F479} SHE IS FULL!' : '\u{1F479} HUNGRY GIANT', color: cur.won ? '#7dff4a' : '#ff6a7a' },
+        { text: cur.won ? '\u{1F40B} REELED IN!' : '\u{1F40B} RIVER GIANT', color: cur.won ? '#7dff4a' : '#ff6a7a' },
         { text: `${'█'.repeat(blocks)}${'░'.repeat(10 - blocks)} ${cur.fill}/${cur.need}`, color: '#ffd23a', scale: 0.8 },
       ])
     },

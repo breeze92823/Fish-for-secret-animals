@@ -73,10 +73,10 @@ export function active(now = Date.now()) {
   const wk = weekend(now)
   if (wk.on) out.push({ id: 'weekend', icon: '\u{1F4B0}', name: 'Weekend Boost', text: `${EVENTS.weekend.income}x income`, endsAt: wk.endsAt, color: '#ffc21f' })
   const b = bossWindow(now)
-  if (b.on) out.push({ id: 'boss', icon: '\u{1F479}', name: 'Hungry Giant', text: 'Throw to feed her!', endsAt: b.endsAt, color: '#ff4f5e' })
+  if (b.on) out.push({ id: 'boss', icon: '\u{1F40B}', name: 'River Giant', text: 'Cast to reel it in!', endsAt: b.endsAt, color: '#ff4f5e' })
   const f = featured(now)
   out.push({ id: 'featured', icon: '\u{2B50}', name: `Featured: ${AREAS[f.area].name}`, text: `${EVENTS.featured.variant}x shiny odds`, endsAt: f.endsAt, color: '#7ae8ff', area: f.area })
   const s = season(now)
-  out.push({ id: 'season', icon: s.season.icon, name: s.season.name, text: 'Season girls + tickets', endsAt: s.endsAt, color: s.season.color })
+  out.push({ id: 'season', icon: s.season.icon, name: s.season.name, text: 'Season animals + tickets', endsAt: s.endsAt, color: s.season.color })
   return out
 }

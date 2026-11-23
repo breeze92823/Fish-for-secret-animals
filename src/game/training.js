@@ -68,7 +68,6 @@ export function createTrainer({ fx, sfx, player, ui, station, director, freeze, 
 
   const inRing = (p, r = TRAINING.enterR) => (p.x - spot.x) ** 2 + (p.z - spot.z) ** 2 < r * r && p.y < 1.5
   const onPad = (p, r = 1.9) => (p.x - pad.spot.x) ** 2 + (p.z - pad.spot.z) ** 2 < r * r && p.y < 1.5
-  const ringC = new Vector3(spot.x, 0, spot.z + TRAINING.padGap / 2)
   const v3 = (x, y, z) => new Vector3(x, y, z)
   // The pad's label floats in front of the bench seen from the lane side: draw it on top so the
   // bench never hides the price.
@@ -162,7 +161,7 @@ export function createTrainer({ fx, sfx, player, ui, station, director, freeze, 
     fx.stars(chest, '#ffd93b', 14, 6)
     fx.sparkle(chest, '#8dff3c', 26, { speed: 6, size: 0.45, life: 0.9, up: 3 })
     fx.confetti(new Vector3(spot.x, station.gripY + 1.4, spot.z), 36, 6)
-    fx.text(`+${levels * TRAINING.strengthPerLevel} Strength`, new Vector3(spot.x, station.gripY + 1.6, spot.z), '#ff4d4d', { height: 0.75, life: 1.4, rise: 1.8 })
+    fx.text(`+${levels * TRAINING.strengthPerLevel} Power`, new Vector3(spot.x, station.gripY + 1.6, spot.z), '#ff4d4d', { height: 0.75, life: 1.4, rise: 1.8 })
   }
 
   // --- Random XP boosts ---
@@ -380,7 +379,7 @@ export function createTrainer({ fx, sfx, player, ui, station, director, freeze, 
     update(dt, t) {
       const p = player.renderPosition
       clock += dt
-      near = (p.x - ringC.x) ** 2 + (p.z - ringC.z) ** 2 < (ringR + 4) ** 2
+      near = (p.x - spot.x) ** 2 + (p.z - spot.z - TRAINING.padGap / 2) ** 2 < (ringR + 4) ** 2 // the ring's centre (spot moves when the pen grows)
       if (!inRing(p, TRAINING.enterR + 0.5)) armed = true
       updatePad(dt, t, p)
       if (phase === 'idle') {

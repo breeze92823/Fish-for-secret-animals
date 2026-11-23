@@ -18,11 +18,20 @@
 .ix {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+.ix-body {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(11em, 17em);
   gap: 0.8em;
 }
 .ix-list {
+  position: relative; /* offsetParent for scroll-to-page */
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -118,6 +127,31 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr)); /* ten girls: two rows of five */
   gap: 0.45em;
+}
+.ix-cards.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* an event's four animals */
+}
+.ix-cards.four .ix-card {
+  aspect-ratio: 1.15;
+}
+
+/* Event animals */
+.ix-divider {
+  margin: 0.2em 0 -0.2em;
+  font-size: 1.2em;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.ix-art.season {
+  background: linear-gradient(160deg, var(--b1), var(--b2));
+}
+.ix-season-icon {
+  position: absolute;
+  inset: 0 0 25% 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  font-size: 3em;
 }
 
 /* A girl's card */
@@ -278,6 +312,106 @@
   color: #7dff4a;
 }
 
+/* Reward chips (page rewards) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+.ix-prog .chips {
+  flex: 1 1 100%;
+}
+.chip {
+  padding: 0.1em 0.5em;
+  border-radius: 0.6em;
+  border: 0.14em solid #0d1220;
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 0.78em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.chip.cash {
+  color: #7dff4a;
+}
+.chip.title {
+  color: #ffd23a;
+}
+.chip.inc {
+  color: #7ae8ff;
+}
+.chip.ok {
+  background: #2f8f2a;
+}
+
+/* Bottom bar: Unlocked n/total, titles, legend */
+.ix-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+.ix-unlock {
+  position: relative;
+  height: 2.3em;
+  border-radius: 0.6em;
+  background: rgba(0, 0, 0, 0.45);
+  border: 0.18em solid #0d1220;
+  overflow: hidden;
+}
+.ix-unlock i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(#5ab8ff, #2f6fe0);
+  box-shadow: inset 0 0.2em 0 rgba(255, 255, 255, 0.35);
+  transition: width 0.4s;
+}
+.ix-unlock span {
+  position: relative;
+  display: block;
+  text-align: center;
+  line-height: 2em;
+  font-size: 1.35em;
+}
+.ix-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  font-size: 0.85em;
+}
+.ix-titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.ix-titles::-webkit-scrollbar {
+  display: none;
+}
+.ix-title {
+  padding: 0.05em 0.55em;
+  border-radius: 0.6em;
+  border: 0.14em solid #0d1220;
+  background: rgba(255, 210, 58, 0.18);
+  color: #ffd23a;
+}
+.ix-titles small {
+  opacity: 0.75;
+}
+.ix-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.ix-legend .ix-own {
+  position: static;
+  flex: none;
+}
+
 /* Detail panel */
 .ix-detail {
   --c1: #4fb4ff;
@@ -299,7 +433,8 @@
   position: relative;
   width: 100%;
   aspect-ratio: 0.8;
-  max-height: 60%;
+  max-height: 46%;
+  flex: 0 1 auto;
   border-radius: 0.6em;
   border: 0.2em solid #0d1220;
   background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.45), rgba(0, 0, 0, 0.25) 70%), var(--c2);
@@ -361,10 +496,40 @@
   font-size: 0.85em;
   opacity: 0.9;
 }
+.ix-rewards {
+  z-index: 2;
+  align-self: stretch;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+  padding: 0.45em;
+  border-radius: 0.7em;
+  border: 0.16em solid #0d1220;
+  background: rgba(0, 0, 0, 0.38);
+  text-align: center;
+}
+.ix-rewards b {
+  font-size: 1em;
+}
+.ix-rewards small {
+  font-size: 0.72em;
+  opacity: 0.9;
+}
+.ix-rewards .chips {
+  justify-content: center;
+}
 
 /* Phones (portrait) and short screens: the detail becomes a strip on top */
 @media (max-width: 640px), (max-height: 430px) {
-  .ix {
+  .ix-rewards {
+    display: none; /* the area strips already show the page reward */
+  }
+  .ix-q {
+    font-size: 0.66em;
+  }
+  .ix-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0.5em;
@@ -404,7 +569,7 @@
   }
 }
 @media (max-height: 430px) and (min-width: 641px) {
-  .ix {
+  .ix-body {
     grid-template-columns: minmax(0, 1fr) 13em;
     grid-template-rows: none;
   }
@@ -421,6 +586,25 @@
 @media (max-height: 430px) {
   .ix-cards {
     grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+  .ix-cards.four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .ix-card:not(.unknown) .ix-q {
+    display: none; /* ~40px cards: the name is in the detail strip */
+  }
+  .ix-meta {
+    display: none;
+  }
+  .ix-unlock {
+    height: 1.8em;
+  }
+  .ix-unlock span {
+    line-height: 1.6em;
+    font-size: 1.1em;
+  }
+  .ix-prog .chips {
+    display: none;
   }
   .ix-area {
     grid-template-columns: 5.5em minmax(0, 1fr);

@@ -2,7 +2,7 @@
 // upgrades, the baddies in the pen, the Training Bench, the chest timer, quests and
 // stats. Saved to localStorage (debounced) and loaded at boot, with offline
 // income credited on return. Other modules listen with on(event, fn).
-import { AREAS, BADDIES, ECONOMY, FOODS, FUSE, INDEX_BONUS, INDEX_REWARD, LEGACY_IDS, POTIONS, QUESTS, RECORDS, SIZES, STARTER_FOOD, THROW, TRAINING, UPGRADES, VARIANTS, repXp, seasonIncome } from '../config.js'
+import { AREAS, BADDIES, BAITS, BOOST_SHOP, ECONOMY, FOODS, FUSE, INDEX_BONUS, INDEX_REWARD, LEGACY_IDS, POTIONS, QUESTS, RECORDS, SIZES, STARTER_FOOD, THROW, TRAILS, TRAINING, UPGRADES, VARIANTS, repXp, seasonIncome } from '../config.js'
 import { BY_ID } from './baddieModel.js'
 import * as events from './events.js'
 
@@ -31,6 +31,10 @@ function fresh() {
     foods: [STARTER_FOOD],
     food: STARTER_FOOD,
     foodsV: 2, // food list version (v1 saves had the old 8-food list; see load())
+    baits: {}, // bait id -> casts left (BAITS)
+    bait: '', // the equipped bait ('' = none): each cast uses one
+    trails: [], // owned trail ids (TRAILS)
+    trail: '', // the equipped trail ('' = none)
     upgrades: Object.fromEntries(UPGRADES.map((u) => [u.id, 0])),
     baddies: [], // { uid, id, size, v?, a? } (v = VARIANTS index, a = area a season girl was caught in)
     hotbar: [], // caught, not placed yet: { id, size, v?, a? }
@@ -106,7 +110,7 @@ export const range = () => Math.min(THROW.maxRange, food().dist * (1 + strengthB
 // Iron Arms: +xpPerLevel training XP per level.
 export const trainXpMult = () => 1 + (UPGRADES.find((u) => u.id === 'arms')?.xpPerLevel ?? 0) * (S.upgrades.arms ?? 0)
 // Luck before the throw's own multipliers (grade, streak, distance, Lucky Throw, featured area).
-export const luck = () => food().luck * (1 + 0.2 * S.upgrades.luck) * events.luckMult() * potionMult('luck')
+export const luck = () => food().luck * baitLuck() * (1 + 0.2 * S.upgrades.luck) * events.luckMult() * potionMult('luck')
 export const walkMult = () => 1 + 0.1 * S.upgrades.speed
 export const sellPrice = (b) => Math.max(1, Math.round(baddieIncome(b) * ECONOMY.sellSeconds))
 export const nextFood = () => FOODS.filter((f) => !f.special).find((f) => !S.foods.includes(f.id)) ?? null
@@ -344,10 +348,26 @@ export function rollSeason(L = luck()) {
   }
   return pool[pool.length - 1]
 }
+// The chance of each animal of a lane area for luck L (what rollBaddie does), for the ODDS popup.
+export function oddsFor(area, L = luck(), minRarity = 0) {
+  let pool = areaGirls(area)
+  if (minRarity > 0) {
+    const top = pool.filter((b) => b.rarity >= minRarity)
+    pool = top.length ? top : pool.filter((b) => b.rarity === Math.max(...pool.map((x) => x.rarity)))
+  }
+  const w = pool.map((b) => 1 / Math.pow(b.odds, 1 / Math.max(1, Math.sqrt(L))))
+  const sum = w.reduce((a, b) => a + b, 0) || 1
+  return pool.map((b, i) => ({ id: b.id, rarity: b.rarity, p: w[i] / sum }))
+}
 // Pick a girl of a lane area: weighted by 1/odds ("1 in N" on her Index card), with luck
 // flattening the odds of the rare ones.
-export function rollBaddie(area, L = luck()) {
-  const pool = areaGirls(area)
+export function rollBaddie(area, L = luck(), minRarity = 0) {
+  let pool = areaGirls(area)
+  // Jackpot Bait: only animals of at least that rarity can bite (the area's rarest, if none reach it).
+  if (minRarity > 0) {
+    const top = pool.filter((b) => b.rarity >= minRarity)
+    pool = top.length ? top : pool.filter((b) => b.rarity === Math.max(...pool.map((x) => x.rarity)))
+  }
   const weights = pool.map((b) => 1 / Math.pow(b.odds, 1 / Math.max(1, Math.sqrt(L))))
   let r = Math.random() * weights.reduce((a, b) => a + b, 0)
   for (let i = 0; i < pool.length; i++) {
@@ -357,10 +377,106 @@ export function rollBaddie(area, L = luck()) {
   return pool[pool.length - 1]
 }
 
+// --- Tackle: baits, trails, boosts ----------------------------------------------------------------
+export const BAIT_BY_ID = Object.fromEntries(BAITS.map((b) => [b.id, b]))
+export const TRAIL_BY_ID = Object.fromEntries(TRAILS.map((t) => [t.id, t]))
+export const baitCount = (id) => Math.max(0, S.baits?.[id] | 0)
+// The equipped bait while it has casts left, else null.
+export const bait = () => (S.bait && baitCount(S.bait) > 0 ? BAIT_BY_ID[S.bait] ?? null : null)
+export const baitLuck = () => bait()?.luck ?? 1
+// A bait's money price per pack (Jackpot Bait is priced from income like the Lucky Cast).
+export const baitPrice = (b) => (b.dyn ? Math.round(Math.max(b.dyn.min, income() * b.dyn.secs)) : b.price)
+export function buyBait(id) {
+  const b = BAIT_BY_ID[id]
+  if (!b || baitCount(id) >= 9999) return false
+  if (!spend(baitPrice(b))) return false
+  S.baits = { ...S.baits, [id]: Math.min(9999, baitCount(id) + b.pack) }
+  if (!bait()) S.bait = id
+  emit('bait', id, true)
+  dirty()
+  return true
+}
+// Equip a bait you have casts of; equipping the one in use puts it away.
+export function equipBait(id) {
+  if (id && baitCount(id) <= 0) return false
+  S.bait = S.bait === id ? '' : id
+  emit('bait', S.bait, false)
+  dirty()
+  return true
+}
+// One cast uses one bait: returns the bait that was on the hook (null = bare hook). When the pack
+// runs out the next owned bait (best luck first) is put on, if any.
+export function useBait() {
+  const b = bait()
+  if (!b) return null
+  S.baits = { ...S.baits, [b.id]: baitCount(b.id) - 1 }
+  if (baitCount(b.id) <= 0) {
+    const next = BAITS.filter((x) => baitCount(x.id) > 0).sort((a, c) => c.luck - a.luck)[0]
+    S.bait = next?.id ?? ''
+  }
+  emit('bait', S.bait, false)
+  dirty()
+  return b
+}
+let trialTrail = '' // a trail being tried on (TRY IT): not owned, not saved
+let trialCasts = 0
+export const trail = () => TRAIL_BY_ID[trialCasts > 0 ? trialTrail : S.trail] ?? null
+export const trailTrial = () => (trialCasts > 0 ? trialTrail : '')
+export function buyTrail(id) {
+  const t = TRAIL_BY_ID[id]
+  if (!t || S.trails.includes(id)) return false
+  if (!spend(t.price)) return false
+  S.trails = [...S.trails, id]
+  S.trail = id
+  trialCasts = 0
+  emit('trail', id, true)
+  dirty()
+  return true
+}
+export function equipTrail(id) {
+  if (id && !S.trails.includes(id)) return false
+  S.trail = S.trail === id ? '' : id
+  trialCasts = 0
+  emit('trail', S.trail, false)
+  return (dirty(), true)
+}
+export function tryTrail(id) {
+  if (!TRAIL_BY_ID[id]) return false
+  trialTrail = id
+  trialCasts = 5
+  emit('trail', id, false)
+  return true
+}
+// A cast has been made: a trail on trial wears out after five.
+export function trailCasted() {
+  if (trialCasts > 0 && --trialCasts === 0) emit('trail', S.trail, false)
+}
+// Rods are bought in order: you can buy any tier up to one above your best (the Galaxy Rod never
+// waits). Returns the rod you must buy first, or null.
+export function rodLock(id) {
+  const f = FOODS.find((x) => x.id === id)
+  if (!f || f.special || S.foods.includes(id)) return null
+  const best = Math.max(0, ...S.foods.map((o) => FOODS.find((x) => x.id === o)?.tier ?? 0))
+  if (f.tier <= best + 1) return null
+  return FOODS.find((x) => !x.special && x.tier === f.tier - 1) ?? null
+}
+// Boost shelf prices follow income (never below `min`).
+export const boostPrice = (b) => Math.round(Math.max(b.min, income() * b.secs))
+export function buyBoost(id) {
+  const b = BOOST_SHOP.find((x) => x.id === id)
+  if (!b || !spend(boostPrice(b))) return false
+  if (b.potion) addPotion(b.potion, b.minutes)
+  if (b.lucky) S.luckyCredits = Math.min(99, (S.luckyCredits | 0) + b.lucky)
+  if (b.lure) S.lures = Math.min(999, (S.lures | 0) + b.lure)
+  emit('boost', id)
+  dirty()
+  return true
+}
+
 // --- Purchases ------------------------------------------------------------------------------------
 export function buyFood(id) {
   const f = FOODS.find((x) => x.id === id)
-  if (!f || S.foods.includes(id)) return false
+  if (!f || S.foods.includes(id) || rodLock(id)) return false
   if (!spend(f.price)) return false
   S.foods.push(id)
   S.food = id
@@ -559,7 +675,7 @@ export function grantPrize(p, source = 'prize') {
     parts.push(`+$${Math.round(cash).toLocaleString()}`)
   } else if (p.kind === 'lucky') {
     S.luckyCredits = Math.min(99, (S.luckyCredits | 0) + (p.n ?? 1))
-    parts.push(`${p.n ?? 1} free Lucky Throw${(p.n ?? 1) > 1 ? 's' : ''}`)
+    parts.push(`${p.n ?? 1} free Lucky Cast${(p.n ?? 1) > 1 ? 's' : ''}`)
   } else if (p.kind === 'potion') {
     addPotion(p.potion, p.minutes)
     parts.push(`${POTIONS[p.potion].name} for ${p.minutes} min`)
@@ -574,7 +690,7 @@ export function grantPrize(p, source = 'prize') {
 // What a prize is, in words (before it is granted).
 export function prizeText(p) {
   if (p.kind === 'cash') return `$${Math.round(Math.max(p.floor ?? 0, income() * (p.secs ?? 0))).toLocaleString()}`
-  if (p.kind === 'lucky') return `${p.n ?? 1} Lucky Throw${(p.n ?? 1) > 1 ? 's' : ''}`
+  if (p.kind === 'lucky') return `${p.n ?? 1} Lucky Cast${(p.n ?? 1) > 1 ? 's' : ''}`
   if (p.kind === 'potion') return `${POTIONS[p.potion].name} ${p.minutes}m`
   return ''
 }
@@ -639,6 +755,10 @@ export function hydrate(raw) {
   }
   if (!S.foods.includes(STARTER_FOOD)) S.foods.unshift(STARTER_FOOD)
   if (!S.foods.includes(S.food)) S.food = S.foods[S.foods.length - 1]
+  S.baits = raw.baits && typeof raw.baits === 'object' ? Object.fromEntries(Object.entries(raw.baits).filter(([k, v]) => BAIT_BY_ID[k] && v > 0).map(([k, v]) => [k, Math.min(9999, Math.floor(v))])) : {}
+  S.bait = BAIT_BY_ID[raw.bait] && baitCount(raw.bait) > 0 ? raw.bait : ''
+  S.trails = Array.isArray(raw.trails) ? [...new Set(raw.trails.filter((id) => TRAIL_BY_ID[id]))] : []
+  S.trail = S.trails.includes(raw.trail) ? raw.trail : ''
   S.potions = raw.potions && typeof raw.potions === 'object' ? Object.fromEntries(Object.entries(raw.potions).filter(([k, v]) => POTIONS[k] && v > 0)) : {}
   S.indexPaid = Array.isArray(raw.indexPaid) ? raw.indexPaid.filter((a) => Number.isInteger(a)) : []
   S.titles = Array.isArray(raw.titles) ? raw.titles.filter((t) => typeof t === 'string') : []
